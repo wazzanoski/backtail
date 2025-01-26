@@ -1,0 +1,21 @@
+name: Docker Image CI for GHCR
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build_and_publish_to_ghcr:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image and Publish to GitHub Container Registry
+      run: |
+        docker build . -t ghcr.io/wazzanoski/backtail:latest
+        docker login --username wazzanoski --password ${{ secrets.GHCR_PAT }} ghcr.io
+        docker push ghcr.io/wazzanoski/backtail:latest
