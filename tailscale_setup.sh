@@ -6,7 +6,7 @@ APP_NAME=`basename -s '.sh' ${0}`
 CONFIG_DIR="/config"
 
 log() {
-  MSG="${0}"
+  MSG="${1}"
   echo "[${APP_NAME}] ${MSG}"
 }
 
