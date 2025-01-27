@@ -5,7 +5,7 @@ COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscale /usr/b
 RUN mkdir -p /var/run/tailscale /var/lib/tailscale
 # Setup sftp
 RUN apk add --no-cache openssh
-COPY stfp_jail.conf /etc/ssh/ssh_config.d/
+COPY sftp_jail.conf /etc/ssh/ssh_config.d/
 COPY sftp_setup.sh /
 RUN chmod +x /sftp_setup.sh
 # Setup tailscale
