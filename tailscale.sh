@@ -30,13 +30,13 @@ if [ ! -d ${TS_STATE_DIR} ]; then
   mkdir -p ${TS_STATE_DIR}
 fi
 
-TSD_PARAMS+="-tun=userspace-networking "  
+TSD_PARAMS="${TSD_PARAMS}-tun=userspace-networking "  
 
 if [ "${TAILSCALE_LOG}" != "false" ]; then
-  TSD_PARAMS+=">>/var/log/tailscaled 2>&1 "
+  TSD_PARAMS="${TSD_PARAMS}>>/var/log/tailscaled 2>&1 "
   TSD_MSG=" with log file /var/log/tailscaled"
 else
-  TSD_PARAMS+=">/dev/null 2>&1 "
+  TSD_PARAMS="${TSD_PARAMS}>/dev/null 2>&1 "
 fi
 
 if [ ! -z "${TAILSCALED_PARAMS}" ]; then
