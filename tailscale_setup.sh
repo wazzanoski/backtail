@@ -3,8 +3,12 @@
 #https://github.com/ich777/docker-steamcmd-server/blob/master/tailscale.sh
 
 APP_NAME=`basename -s '.sh' ${0}`
-echo "[${APP_NAME}] Begin."
 CONFIG_DIR="/config"
+
+log() {
+  MSG="${0}"
+  echo "[${APP_NAME}] ${MSG}"
+}
 
 error_handler() {
   echo
@@ -13,7 +17,7 @@ error_handler() {
 }
 
 echo "======================="
-echo
+log "Begin."
 
 unset TSD_PARAMS
 unset TS_PARAMS
@@ -22,7 +26,7 @@ if [ -z "${TAILSCALE_STAT_DIR}" ]; then
   TAILSCALE_STATE_DIR="${CONFIG_DIR}/.tailscale_state"
 fi
 TSD_STATE_DIR=${TAILSCALE_STATE_DIR}
-echo "[${APP_NAME}] Settings Tailscale state dir to: ${TSD_STATE_DIR}"
+log "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
 
 if [ ! -d ${TS_STATE_DIR} ]; then
   mkdir -p ${TS_STATE_DIR}
@@ -45,26 +49,26 @@ if [ ! -z "${TAILSCALE_PARAMS}" ]; then
   TS_PARAMS="${TAILSCALE_PARAMS}${TS_PARAMS}"
 fi
 
-echo "[${APP_NAME}] Starting tailscaled${TSD_MSG}"
+log "Starting tailscaled${TSD_MSG}"
 eval tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&
 
-echo "[${APP_NAME}] Starting tailscale"
+log "Starting tailscale"
 eval tailscale up ${TS_AUTH}${TS_PARAMS}
 EXIT_STATUS="$?"
 
 if [ "${EXIT_STATUS}" == "0" ]; then
-  echo "[${APP_NAME}] Connecting to Tailscale successful!"
+  log "Connecting to Tailscale successful!"
   if [ ! -f ${TSD_STATE_DIR}/.initialized ]; then
-    echo "[${APP_NAME}] Please don't remove this file!" > ${TSD_STATE_DIR}/.initialized
+    echo "Please don't remove this file!" > ${TSD_STATE_DIR}/.initialized
   fi
 else
-  echo "[${APP_NAME}] ERROR: Connecting to Tailscale not successful!"
+  log "ERROR: Connecting to Tailscale not successful!"
   if [ -f /var/log/tailscaled ]; then
-    echo "[${APP_NAME}] Please check the logs:"
+    log "Please check the logs:"
     tail -20 /var/log/tailscaled
     echo "======================="
   fi
   error_handler
 fi
 
-echo "[${APP_NAME}] Done."
+log "Done."
