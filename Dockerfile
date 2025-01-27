@@ -3,11 +3,14 @@ FROM alpine:latest
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscaled /usr/bin/tailscaled
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscale /usr/bin/tailscale
 RUN mkdir -p /var/run/tailscale /var/lib/tailscale
-# Add openssh
+# Setup sftp
 RUN apk add --no-cache openssh
+COPY stfp_jail.conf /etc/ssh/ssh_config.d/
+COPY sftp_setup.sh /
+RUN chmod +x /sftp_setup.sh
 # Setup tailscale
-COPY tailscale.sh /tailscale.sh
-RUN chmod +x /tailscale.sh
+COPY tailscale_setup.sh /
+RUN chmod +x /tailscale_setup.sh
 # Setup entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
