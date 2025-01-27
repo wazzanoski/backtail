@@ -2,6 +2,8 @@
 #Most of this script has been copied from here:
 #https://github.com/ich777/docker-steamcmd-server/blob/master/tailscale.sh
 
+APP_NAME=`basename -s '.sh' ${0}`
+
 CONFIG_DIR="/config"
 
 error_handler() {
@@ -20,7 +22,7 @@ if [ -z "${TAILSCALE_STAT_DIR}" ]; then
   TAILSCALE_STATE_DIR="${CONFIG_DIR}/.tailscale_state"
 fi
 TSD_STATE_DIR=${TAILSCALE_STATE_DIR}
-echo "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
+echo "[${APP_NAME}] Settings Tailscale state dir to: ${TSD_STATE_DIR}"
 
 if [ ! -d ${TS_STATE_DIR} ]; then
   mkdir -p ${TS_STATE_DIR}
@@ -43,22 +45,22 @@ if [ ! -z "${TAILSCALE_PARAMS}" ]; then
   TS_PARAMS="${TAILSCALE_PARAMS}${TS_PARAMS}"
 fi
 
-echo "Starting tailscaled${TSD_MSG}"
+echo "[${APP_NAME}] Starting tailscaled${TSD_MSG}"
 eval tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&
 
-echo "Starting tailscale"
+echo "[${APP_NAME}] Starting tailscale"
 eval tailscale up ${TS_AUTH}${TS_PARAMS}
 EXIT_STATUS="$?"
 
 if [ "${EXIT_STATUS}" == "0" ]; then
-  echo "Connecting to Tailscale successful!"
+  echo "[${APP_NAME}] Connecting to Tailscale successful!"
   if [ ! -f ${TSD_STATE_DIR}/.initialized ]; then
-    echo "Please don't remove this file!" > ${TSD_STATE_DIR}/.initialized
+    echo "[${APP_NAME}] Please don't remove this file!" > ${TSD_STATE_DIR}/.initialized
   fi
 else
-  echo "ERROR: Connecting to Tailscale not successful!"
+  echo "[${APP_NAME}] ERROR: Connecting to Tailscale not successful!"
   if [ -f /var/log/tailscaled ]; then
-    echo "Please check the logs:"
+    echo "[${APP_NAME}] Please check the logs:"
     tail -20 /var/log/tailscaled
     echo "======================="
   fi
