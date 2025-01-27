@@ -2,6 +2,8 @@
 #Most of this script has been copied from here:
 #https://github.com/ich777/docker-steamcmd-server/blob/master/tailscale.sh
 
+CONFIG_DIR="/config"
+
 error_handler() {
   echo
   echo "======================="
@@ -15,7 +17,7 @@ unset TSD_PARAMS
 unset TS_PARAMS
 
 if [ -z "${TAILSCALE_STAT_DIR}" ]; then
-  TAILSCALE_STATE_DIR="/config/.tailscale_state"
+  TAILSCALE_STATE_DIR="${CONFIG_DIR}/.tailscale_state"
 fi
 TSD_STATE_DIR=${TAILSCALE_STATE_DIR}
 echo "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
