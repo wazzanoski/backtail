@@ -1,6 +1,8 @@
 #!/bin/sh
 
-if [ -z "$SFTP_USER" ] || [ -z "$SFTP_PASS" ]; then
+BACKUPS_DIR="/backups"
+
+if [ -z "${SFTP_USER}" ] || [ -z "${SFTP_PASS}" ]; then
   echo "Error: SFTP_USER and SFTP_PASS must be set as environment variables."
   exit 1
 fi
@@ -14,9 +16,9 @@ else
   cp /config/ssh_host_* /etc/ssh/
 fi
 
-adduser -D -h /conf "$SFTP_USER"
+adduser -D -h "${BACKUPS_DIR}" "${SFTP_USER}"
 
-echo "$SFTP_USER:$SFTP_PASS" | chpasswd
+echo "${SFTP_USER}:${SFTP_PASS}" | chpasswd
 
 /usr/sbin/sshd -D
 
