@@ -5,7 +5,7 @@ BACKUPS_DIR="/backups"
 CONFIG_DIR="/config"
 
 log() {
-  MSG="${0}"
+  MSG="${1}"
   echo "[${APP_NAME}] ${MSG}"
 }
 
