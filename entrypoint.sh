@@ -21,4 +21,4 @@ echo "$SFTP_USER:$SFTP_PASS" | chpasswd
 /usr/sbin/sshd -D
 
 echo "Setting up tailscale..."
-/tailscale.sh
+exec /tailscale.sh
