@@ -16,7 +16,7 @@ else
   cp /config/ssh_host_* /etc/ssh/
 fi
 
-sudo adduser -D -h "${BACKUPS_DIR}" "${SFTP_USER}"
+adduser -D -h "${BACKUPS_DIR}" "${SFTP_USER}"
 
 echo "${SFTP_USER}:${SFTP_PASS}" | chpasswd
 
