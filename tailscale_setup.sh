@@ -3,7 +3,7 @@
 #https://github.com/ich777/docker-steamcmd-server/blob/master/tailscale.sh
 
 APP_NAME=`basename -s '.sh' ${0}`
-
+echo "[${APP_NAME}] Begin."
 CONFIG_DIR="/config"
 
 error_handler() {
@@ -66,3 +66,5 @@ else
   fi
   error_handler
 fi
+
+echo "[${APP_NAME}] Done."
