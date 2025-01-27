@@ -1,4 +1,51 @@
-#!/bin/bash
+#!/bin/sh
+
+error_handler() {
+  echo
+  echo "======================="
+  exit 1
+}
+
+echo "======================="
+echo
+
+unset TSD_PARAMS
+unset TS_PARAMS
+
+if [ -v SERVER_DIR ]; then
+  TSD_STATE_DIR=${SERVER_DIR}/.tailscale_state
+  echo "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
+elif [ -v DATA_DIR ]; then
+  TSD_STATE_DIR=${DATA_DIR}/.tailscale_state
+  echo "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
+else
+  if [ -z "${TAILSCALE_STAT_DIR}" ]; then
+    TAILSCALE_STATE_DIR="/config/.tailscale_state"
+  fi
+  TSD_STATE_DIR=${TAILSCALE_STATE_DIR}
+  echo "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
+fi
+
+if [ ! -d ${TS_STATE_DIR} ]; then
+  mkdir -p ${TS_STATE_DIR}
+fi
+
+TSD_PARAMS+="-tun=userspace-networking "  
+
+if [ "${TAILSCALE_LOG}" != "false" ]; then
+  TSD_PARAMS+=">>/var/log/tailscaled 2>&1 "
+  TSD_MSG=" with log file /var/log/tailscaled"
+else
+  TSD_PARAMS+=">/dev/null 2>&1 "
+fi
+
+if [ ! -z "${TAILSCALED_PARAMS}" ]; then
+  TSD_PARAMS="${TAILSCALED_PARAMS} ${TSD_PARAMS}"
+fi
+
+if [ ! -z "${TAILSCALE_PARAMS}" ]; then
+  TS_PARAMS="${TAILSCALE_PARAMS}${TS_PARAMS}"
+fi
 
 echo "Starting tailscaled${TSD_MSG}"
 eval tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&
