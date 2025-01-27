@@ -22,7 +22,7 @@ adduser -D -h "${BACKUPS_DIR}" "${SFTP_USER}"
 echo "${SFTP_USER}:${SFTP_PASS}" | chpasswd
 
 echo "Starting sshd..."
-/usr/sbin/sshd -D
+/usr/sbin/sshd -D &
 
 echo "Setting up tailscale..."
 exec /tailscale.sh
