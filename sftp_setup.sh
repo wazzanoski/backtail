@@ -21,11 +21,13 @@ else
   cp /config/ssh_host_* /etc/ssh/
 fi
 
-log "Setting up ftp user..."
-#Don't assign a password
-#Deny shell access
-adduser -D -h "${BACKUPS_DIR}" -s '/sbin/nologin' "${USER_NAME}"
-echo "${USER_NAME}:${USER_NAME}" | chpasswd
+log "Setting up sftp user..."
+#-h DIR          Home directory
+#-S              Create a system user
+#-D              Don't assign a password
+#-H              Don't create home directory
+adduser -h "${BACKUPS_DIR}" -S -D -H "${USER_NAME}"
+#echo "${USER_NAME}:${USER_NAME}" | chpasswd
 
 log "Starting sshd..."
 /usr/sbin/sshd -D -e
