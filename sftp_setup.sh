@@ -1,7 +1,6 @@
 #!/bin/sh
 
 APP_NAME=`basename -s '.sh' ${0}`
-BACKUPS_DIR="/backups"
 CONFIG_DIR="/config"
 USER_NAME="backtail"
 
@@ -22,11 +21,10 @@ else
 fi
 
 log "Setting up sftp user..."
-#-h DIR          Home directory
 #-S              Create a system user
 #-D              Don't assign a password
 #-H              Don't create home directory
-adduser -h "${BACKUPS_DIR}" -S -D -H "${USER_NAME}"
+adduser -S -D -H "${USER_NAME}"
 #Because the account was created without a password
 #the account is initially locked.
 #https://unix.stackexchange.com/questions/193066/how-to-unlock-account-for-public-key-ssh-authorization-but-not-for-password-aut
