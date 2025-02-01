@@ -28,10 +28,10 @@ fi
 log "Setting up ftp user..."
 #Don't assign a password
 #Deny shell access
-adduser -D -s /sbin/nologin "${SFTP_USER}"
+adduser -D -h "${BACKUPS_DIR}" -s '/sbin/nologin' "${SFTP_USER}"
 echo "${SFTP_USER}:${SFTP_PASS}" | chpasswd
 
 log "Starting sshd..."
-/usr/sbin/sshd -D
+/usr/sbin/sshd -D -e
 
 log "Done."
