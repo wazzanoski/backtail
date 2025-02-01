@@ -1,12 +1,11 @@
 #!/bin/sh
 
 APP_NAME=`basename -s '.sh' ${0}`
-CONFIG_DIR="/config"
 USER_NAME="backtail"
+CONFIG_DIR="/config"
 
 log() {
-  MSG="${1}"
-  echo "[${APP_NAME}] ${MSG}"
+  printf "%s %-20s %s\n" "`date -Is`" "[${APP_NAME}]" "${*}"
 }
 
 log "Begin."
