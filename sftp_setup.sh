@@ -10,13 +10,13 @@ log() {
 
 log "Begin."
 
-if [ ! -f /config/ssh_host_rsa_key ]; then
-  log "Generating SSH host keys..."
+if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
+  log "Generating SSH host key..."
   ssh-keygen -A
-  cp /etc/ssh/ssh_host_* "${CONFIG_DIR}"
+  cp '/etc/ssh/ssh_host_ed25519_key' "${CONFIG_DIR}"
 else
-  log "Using existing SSH host keys..."
-  cp /config/ssh_host_* /etc/ssh/
+  log "Using existing SSH host key..."
+  cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
 fi
 
 log "Setting up sftp user..."
