@@ -27,7 +27,11 @@ log "Setting up sftp user..."
 #-D              Don't assign a password
 #-H              Don't create home directory
 adduser -h "${BACKUPS_DIR}" -S -D -H "${USER_NAME}"
-#echo "${USER_NAME}:${USER_NAME}" | chpasswd
+#Because the account was created without a password
+#the account is initially locked.
+#https://unix.stackexchange.com/questions/193066/how-to-unlock-account-for-public-key-ssh-authorization-but-not-for-password-aut
+#Unlock the account and set an invalid password hash:
+echo "${USER_NAME}:*" | chpasswd
 
 log "Starting sshd..."
 /usr/sbin/sshd -D -e
