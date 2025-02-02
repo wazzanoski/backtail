@@ -9,7 +9,7 @@ RUN mkdir -p /var/run/tailscale /var/lib/tailscale
 RUN apk add --no-cache openssh
 COPY sftp_jail.conf /etc/ssh/sshd_config.d/
 COPY sftp_setup.sh /
-COPY banner.txt ${CONFIG}
+COPY banner.txt ${CONFIG_DIR}
 RUN chmod +x /sftp_setup.sh
 #log "Setting up sftp user..."
 #-S              Create a system user
