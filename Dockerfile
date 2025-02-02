@@ -9,7 +9,7 @@ RUN apk add --no-cache openssh
 COPY sftp_jail.conf /etc/ssh/sshd_config.d/
 COPY run_sftp.sh /
 COPY banner.txt /etc/ssh/
-RUN chmod +x /sftp_setup.sh
+RUN chmod 500 /run_sftp.sh
 #-S              Create a system user
 #-D              Don't assign a password
 #-H              Don't create home directory
@@ -21,9 +21,9 @@ RUN adduser -S -D -H "${USER}"
 RUN echo "${USER}:*" | chpasswd
 # Setup tailscale
 COPY run_tailscale.sh /
-RUN chmod +x /tailscale_setup.sh
+RUN chmod 500 /run_tailscale.sh
 # Setup entrypoint
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod 500 /entrypoint.sh
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
