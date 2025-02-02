@@ -39,7 +39,13 @@ _seeded_ wih the backup files.
 Once setup, the external USB drive can be disconnected from 
 the Source Server and attched to the Destination Server.
 
-### Backup Location 
+### Container Setup
+On the Destination Server, install the backtail container.
+Do not enable the 'Use Tailscale' Unraid setting - 
+Tailscale is embedded into the container so there is no need to rely on 
+Unraid's Tailscale integration or other approaches such as a sidecar container. 
+
+#### Backup Location 
 On the Destination Server where the backtail container is installed,
 create a location for the backup location.
 This could be a Share or
@@ -50,7 +56,7 @@ Example
 /mnt/disks/BACKTAIL01
 ```
 
-### Tailscale Authentication
+#### Tailscale Authentication
 Start the container and check the logs for the Tailscale authentication URL.
 Example:
 ```
