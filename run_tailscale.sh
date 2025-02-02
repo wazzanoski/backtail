@@ -11,12 +11,11 @@ log() {
 
 error_handler() {
   echo
-  echo "======================="
+  log "======================="
   exit 1
 }
 
-echo "======================="
-log "Begin."
+log "======================="
 
 unset TSD_PARAMS
 unset TS_PARAMS
@@ -48,10 +47,12 @@ if [ ! -z "${TAILSCALE_PARAMS}" ]; then
   TS_PARAMS="${TAILSCALE_PARAMS}${TS_PARAMS}"
 fi
 
-log "Starting tailscaled${TSD_MSG}"
+log "Starting tailscaled..."
+log "tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&"
 eval tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&
 
-log "Starting tailscale"
+log "Starting tailscale..."
+log "tailscale up ${TS_AUTH}${TS_PARAMS}"
 eval tailscale up ${TS_AUTH}${TS_PARAMS}
 EXIT_STATUS="$?"
 
@@ -65,9 +66,7 @@ else
   if [ -f /var/log/tailscaled ]; then
     log "Please check the logs:"
     tail -20 /var/log/tailscaled
-    echo "======================="
+    log "======================="
   fi
   error_handler
 fi
-
-log "Done."
