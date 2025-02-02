@@ -89,7 +89,7 @@ sftp>
 ## Sending Files
 Manually send files using SFTP commands or use a tool 
 such as Rclone (https://rclone.org) or Duplicati (https://duplicati.com) for a fully featured solution.
-Specifics on the use of these tools is beyond the scope of this documentation - please conduct your own research to find the right approach for you.
+Specifics on the use of these tools is beyond the scope of this documentation.
 
 ## Banner Customisation
 You can customise the banner text that is displayed when connected via sftp by editing the file 'banner.txt' in the Container Path 'Config'.
