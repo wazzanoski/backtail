@@ -12,23 +12,20 @@ log "Begin."
 
 if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   log "Generating SSH host key..."
-  ssh-keygen -A
-  cp '/etc/ssh/ssh_host_ed25519_key' "${CONFIG_DIR}"
-else
-  log "Using existing SSH host key..."
-  cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
+  ssh-keygen -t ed25519 -f "${CONFIG_DIR}/ssh_host_ed25519_key" -N ""
 fi
+cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
 
-log "Setting up sftp user..."
+#log "Setting up sftp user..."
 #-S              Create a system user
 #-D              Don't assign a password
 #-H              Don't create home directory
-adduser -S -D -H "${USER_NAME}"
+#adduser -S -D -H "${USER_NAME}"
 #Because the account was created without a password
 #the account is initially locked.
 #https://unix.stackexchange.com/questions/193066/how-to-unlock-account-for-public-key-ssh-authorization-but-not-for-password-aut
 #Unlock the account and set an invalid password hash:
-echo "${USER_NAME}:*" | chpasswd
+#echo "${USER_NAME}:*" | chpasswd
 
 log "Starting sshd..."
 /usr/sbin/sshd -D -e
