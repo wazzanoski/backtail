@@ -1,7 +1,6 @@
+FROM alpine:latest
 ENV USER=backtail
 ENV CONFIG_DIR=/config
-
-FROM alpine:latest
 # Copy Tailscale binaries from the tailscale image on Docker Hub.
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscaled /usr/bin/tailscaled
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscale /usr/bin/tailscale
