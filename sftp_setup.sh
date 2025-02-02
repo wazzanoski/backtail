@@ -12,6 +12,10 @@ if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   ssh-keygen -t ed25519 -f "${CONFIG_DIR}/ssh_host_ed25519_key" -N ""
 fi
 cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
+if [ ! -f "${CONFIG_DIR}/banner.txt" ]; then
+  log "Setting default banner..."
+  cp '/etc/ssh/banner.txt' "${CONFIG_DIR}/" 
+fi
 
 log "Starting sshd..."
 /usr/sbin/sshd -D -e
