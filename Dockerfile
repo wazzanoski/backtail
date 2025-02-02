@@ -7,7 +7,7 @@ RUN mkdir -p /var/run/tailscale /var/lib/tailscale
 # Setup sftp
 RUN apk add --no-cache openssh
 COPY sftp_jail.conf /etc/ssh/sshd_config.d/
-COPY sftp_setup.sh /
+COPY run_sftp.sh /
 COPY banner.txt /etc/ssh/
 RUN chmod +x /sftp_setup.sh
 #-S              Create a system user
@@ -20,7 +20,7 @@ RUN adduser -S -D -H "${USER}"
 #Unlock the account and set an invalid password hash:
 RUN echo "${USER}:*" | chpasswd
 # Setup tailscale
-COPY tailscale_setup.sh /
+COPY run_tailscale.sh /
 RUN chmod +x /tailscale_setup.sh
 # Setup entrypoint
 COPY entrypoint.sh /entrypoint.sh
