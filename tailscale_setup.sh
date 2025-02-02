@@ -4,8 +4,6 @@
 
 SCRIPT_NAME=`basename -s '.sh' ${0}`
 CONFIG_DIR="/config"
-DEFAULT_TSD_STATE_DIR="${CONFIG_DIR}/.tailscale_state"
-DEFAULT_TSD_PARAMS="-tun=userspace-networking "
 
 log() {
   printf "%s %-20s %s\n" "`date -Is`" "[${SCRIPT_NAME}]" "${*}"
@@ -18,18 +16,22 @@ error_handler() {
 }
 
 echo "======================="
+log "Begin."
 
 unset TSD_PARAMS
 unset TS_PARAMS
 
-TSD_STATE_DIR="${DEFAULT_TSD_STATE_DIR}"
-log "Setting Tailscale state dir to: ${TSD_STATE_DIR}"
+if [ -z "${TAILSCALE_STAT_DIR}" ]; then
+  TAILSCALE_STATE_DIR="${CONFIG_DIR}/.tailscale_state"
+fi
+TSD_STATE_DIR=${TAILSCALE_STATE_DIR}
+log "Settings Tailscale state dir to: ${TSD_STATE_DIR}"
 
 if [ ! -d ${TS_STATE_DIR} ]; then
   mkdir -p ${TS_STATE_DIR}
 fi
 
-TSD_PARAMS="${TSD_PARAMS}${DEFAULT_TSD_PARAMS}"  
+TSD_PARAMS="${TSD_PARAMS}-tun=userspace-networking "  
 
 if [ "${TAILSCALE_LOG}" != "false" ]; then
   TSD_PARAMS="${TSD_PARAMS}>>/var/log/tailscaled 2>&1 "
@@ -46,12 +48,10 @@ if [ ! -z "${TAILSCALE_PARAMS}" ]; then
   TS_PARAMS="${TAILSCALE_PARAMS}${TS_PARAMS}"
 fi
 
-log "Starting tailscaled..."
-log "tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&"
+log "Starting tailscaled${TSD_MSG}"
 eval tailscaled -statedir=${TSD_STATE_DIR} ${TSD_PARAMS}&
 
-log "Starting tailscale..."
-log "tailscale up ${TS_AUTH}${TS_PARAMS}"
+log "Starting tailscale"
 eval tailscale up ${TS_AUTH}${TS_PARAMS}
 EXIT_STATUS="$?"
 
@@ -69,3 +69,5 @@ else
   fi
   error_handler
 fi
+
+log "Done."
