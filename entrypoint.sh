@@ -1,4 +1,3 @@
 #!/bin/sh
 
-/tailscale_setup.sh
-/sftp_setup.sh
+/run_tailscale.sh && /run_sftp.sh
