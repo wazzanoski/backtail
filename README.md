@@ -53,7 +53,7 @@ an Unassigned Device Mount Point (such as using an external USB drive described 
 Set this Path as the Container Path 'Backups'.
 Example
 ```
-/mnt/disks/BACKTAIL01
+/mnt/disks/BACKTAILUSB
 ```
 
 #### Tailscale Authentication
