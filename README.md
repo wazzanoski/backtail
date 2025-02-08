@@ -17,24 +17,46 @@ The container has been intentionally designed with minimal configurability to be
   - backtail Container
   - Backup Location
 
-## Initual Setup on Unraid
+## Initial Setup on Unraid
 
 ### SFTP Authentication
+#### Generate a new SSH Key Pair
 On the Source Server that will be sending the files,
 create a ssh key using `ssh-keygen`.
-Note: the type (`-t`) must be `ed25519`.
+
 Example:
 ```
-ssh-keygen -t ed25519 -f "/root/.ssh/id_backtail" -N ""
+ssh-keygen -t ed25519 -f "/root/.ssh/id_backtail_ed25519" -N ""
 ```
-The contents of the generated file `id_backtail.pub` will need to be copied 
+
+Notes:
+- The type (`-t`) must be `ed25519`. All other types such as `ecdsa` or `rsa` are not accepted. backtail has been specifically configured to only accept a single key type that is the most secure for the goal of simplicity & maximum security.
+  >  ED25519 keys are more secure and performant than RSA keys. Source: https://docs.gitlab.com/ee/user/ssh.html#ed25519-ssh-keys
+- The example command above creates a key without a passphase as this is the generally expected usecase. More advanced users may choose to create a key with a passphrase in which case `-N ""` should be removed.
+- (Optional) You may specify the optional argument `-C comment` which will override the default which would be something like `root@<hostname>`. This does not impact the functionality.
+- For further assistance with using `ssh-keygen`, refer to the following resources:
+  - https://man.openbsd.org/ssh-keygen - ssh-keygen man page
+  - https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent - GitHub guide
+
+#### Add SSH Public Key to Backup Location
+The contents of the generated file `id_backtail_ed25519.pub` will need to be copied 
 to a new file `.ssh/authorized_keys` inside the Backup Location 
 on the Destination Server.
 
-An example approach to achieve this is to have an external USB drive initially attached 
-to the Source Server (using Unassigned Devices)
-and copy `id_backtail.pub` to `.ssh/authorized_keys` on the drive.
-Additionally the drive can be initially
+Example approach:
+This approach assumes the Source Server is an Unraid Server with an external USB drive labelled `BACKTAILUSB` mounted via [Unassigned Devices](https://forums.unraid.net/topic/92462-unassigned-devices-managing-disk-drives-and-remote-shares-outside-of-the-unraid-array/) plugin.
+Copy `id_backtail_ed25519.pub` to `.ssh/authorized_keys` on the drive.
+Example command:
+```
+mkdir /mnt/disks/BACKTAILUSB/.ssh
+cp id_backtail_ed25519.pub /mnt/disks/BACKTAILUSB/.ssh/authorized_keys
+```
+Note:
+-  It is not needed to modify the permissions.
+Normally when working with SSH keys it is a default requirement for the `.ssh` directory and the `authorized_keys` file to have permissions that are "not accessible by others" (see [ssh man page](https://man.openbsd.org/ssh#FILES), however due to how Unraid manages file permissions, backtail has been configured for compatibility with Unraid by not enforcing this requirement. 
+- Do not `move` the `id_backtail_ed25519.pub` file to the drive. You will always want to keep a copy of the original on the Source Server.
+
+Additionally, the with the drive connected to the Source Server, the drive can be
 _seeded_ wih the backup files.
 Once setup, the external USB drive can be disconnected from 
 the Source Server and attched to the Destination Server.
@@ -73,7 +95,7 @@ When connecting, provide the private key created on initial setup.
 The user is `backtail`.
 Example:
 ```
-sftp -i id_backtail backtail@XXX.XXX.XXX.XXX
+sftp -i id_backtail_ed25519 backtail@XXX.XXX.XXX.XXX
 ```
 On successful connection, you should see the following output:
 ```
