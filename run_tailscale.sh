@@ -2,13 +2,20 @@
 
 SCRIPT_NAME=$(basename -s '.sh' "${0}")
 CONFIG_DIR="/config"
-TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
-TSD_ARG_TUN="--tun=userspace-networking"
-TSD_LOG='/var/log/tailscaled'
 
 log() {
   printf "%s %-20s %s\n" "$(date -Is)" "[${SCRIPT_NAME}]" "${*}"
 }
+
+# Check if config directory exists
+if [ ! -d "${CONFIG_DIR}" ]; then
+  echo "ERROR: Config directory '${CONFIG_DIR}' does not exist!"
+  exit 1
+fi
+
+TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
+TSD_ARG_TUN="--tun=userspace-networking"
+TSD_LOG='/var/log/tailscaled'
 
 log "Starting tailscaled..."
 tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &

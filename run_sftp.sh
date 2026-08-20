@@ -7,6 +7,12 @@ log() {
   printf "%s %-20s %s\n" "$(date -Is)" "[${SCRIPT_NAME}]" "${*}"
 }
 
+# Check if config directory exists
+if [ ! -d "${CONFIG_DIR}" ]; then
+  echo "ERROR: Config directory '${CONFIG_DIR}' does not exist!"
+  exit 1
+fi
+
 #ssh host key
 if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   log "Generating SSH host key..."
