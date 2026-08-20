@@ -1,10 +1,10 @@
 #!/bin/sh
 
-SCRIPT_NAME=`basename -s '.sh' ${0}`
+SCRIPT_NAME=$(basename -s '.sh' "${0}")
 CONFIG_DIR="/config"
 
 log() {
-  printf "%s %-20s %s\n" "`date -Is`" "[${SCRIPT_NAME}]" "${*}"
+  printf "%s %-20s %s\n" "$(date -Is)" "[${SCRIPT_NAME}]" "${*}"
 }
 
 #ssh host key
@@ -13,6 +13,7 @@ if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   ssh-keygen -t ed25519 -f "${CONFIG_DIR}/ssh_host_ed25519_key" -N ""
 fi
 cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
+chmod 600 '/etc/ssh/ssh_host_ed25519_key'
 
 #banner
 if [ ! -f "${CONFIG_DIR}/banner.txt" ]; then

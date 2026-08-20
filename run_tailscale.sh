@@ -1,25 +1,24 @@
 #!/bin/sh
 
-SCRIPT_NAME=`basename -s '.sh' ${0}`
+SCRIPT_NAME=$(basename -s '.sh' "${0}")
 CONFIG_DIR="/config"
 TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
 TSD_ARG_TUN="--tun=userspace-networking"
 TSD_LOG='/var/log/tailscaled'
 
 log() {
-  printf "%s %-20s %s\n" "`date -Is`" "[${SCRIPT_NAME}]" "${*}"
+  printf "%s %-20s %s\n" "$(date -Is)" "[${SCRIPT_NAME}]" "${*}"
 }
 
 log "Starting tailscaled..."
-log "tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &"
-eval tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &
+tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &
+TSD_PID=${!}
 
 log "Starting tailscale..."
-log "tailscale up"
-eval tailscale up
-EXIT_STATUS="$?"
+tailscale up
+EXIT_STATUS=${?}
 
-if [ "${EXIT_STATUS}" == "0" ]; then
+if [ "${EXIT_STATUS}" -eq 0 ]; then
   log "Connecting to Tailscale successful!"
 else
   log "ERROR: Connecting to Tailscale not successful!"
@@ -29,5 +28,6 @@ else
     tail -20 "${TSD_LOG}"
     log "======================="
   fi
+  kill ${TSD_PID} 2>/dev/null || true
   exit 1
 fi
