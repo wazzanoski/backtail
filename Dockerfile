@@ -15,19 +15,7 @@ COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscaled /usr/
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscale /usr/bin/tailscale
 RUN mkdir -p /var/run/tailscale /var/lib/tailscale
 
-# User setup
-# Create group with specified GID
-RUN addgroup -g "${PGID}" "${USER}" 2>/dev/null || true
-# Create user with specified UID and GID
-# -S              Create a system user
-# -D              Don't assign a password
-# -H              Don't create home directory
-RUN adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
-# Because the account was created without a password
-# the account is initially locked.
-# https://unix.stackexchange.com/questions/193066/how-to-unlock-account-for-public-key-ssh-authorization-but-not-for-password-aut
-# Unlock the account and set an invalid password hash:
-RUN echo "${USER}:*" | chpasswd
+# User/group creation moved to entrypoint.sh for runtime PUID/PGID support
 
 # Setup sftp
 COPY sftp_jail.conf /etc/ssh/sshd_config.d/
@@ -40,8 +28,9 @@ COPY run_tailscale.sh /
 RUN chmod 500 /run_tailscale.sh
 
 # Setup entrypoint
+COPY logger.sh /
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod 500 /entrypoint.sh
+RUN chmod 500 /logger.sh /entrypoint.sh
 
 # Runtime configuration
 EXPOSE 22
