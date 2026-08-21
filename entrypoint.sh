@@ -3,6 +3,7 @@
 # exit script if return code != 0
 set -e
 
+SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export CONFIG_DIR="/config"
 
 # Source common functions
