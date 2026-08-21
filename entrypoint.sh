@@ -16,8 +16,8 @@ fi
 
 # User/group creation at runtime for PUID/PGID support
 # Validate PUID and PGID are numeric
-case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID must be a numeric value" && exit 1 ;; esac
-case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID must be a numeric value" && exit 1 ;; esac
+case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID \'${PUID}\' must be a numeric value" && exit 1 ;; esac
+case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID \'${PGID}\' must be a numeric value" && exit 1 ;; esac
 
 # Create group with specified GID
 addgroup -g "${PGID}" "${USER}" 2>/dev/null || true
