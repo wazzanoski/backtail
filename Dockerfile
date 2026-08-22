@@ -8,7 +8,7 @@ ENV PGID=100
 ENV UMASK=000
 
 # System dependencies
-RUN apk add --no-cache openssh
+RUN apk add --no-cache openssh shadow
 
 # Copy Tailscale binaries from the tailscale image on Docker Hub.
 COPY --from=docker.io/tailscale/tailscale:stable /usr/local/bin/tailscaled /usr/bin/tailscaled

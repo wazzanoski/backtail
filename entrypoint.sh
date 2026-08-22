@@ -20,14 +20,26 @@ fi
 case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID \'${PUID}\' must be a numeric value" && exit 1 ;; esac
 case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID \'${PGID}\' must be a numeric value" && exit 1 ;; esac
 
-# Create group with specified GID
-addgroup -g "${PGID}" "${USER}" 2>/dev/null || true
+# Validate PUID is either 99 or >= 1000 (system user range)
+if [ "${PUID}" -ne 99 ] && [ "${PUID}" -lt 1000 ]; then
+  log ERROR "PUID must be either 99 or >= 1000"
+  exit 1
+fi
 
-# Create user with specified UID and GID
+# Validate PGID is either 100 or >= 1000 (system user range)
+if [ "${PGID}" -ne 100 ] && [ "${PGID}" -lt 1000 ]; then
+  log ERROR "PGID must be either 100 or >= 1000"
+  exit 1
+fi
+
+# Create or modify group with specified GID
+groupmod -o -g "${PGID}" "${USER}" 2>/dev/null || addgroup -g "${PGID}" "${USER}"
+
+# Create or modify user with specified UID and GID
 # -S              Create a system user
 # -D              Don't assign a password
 # -H              Don't create home directory
-adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
+usermod -o -u "${PUID}" -g "${PGID}" "${USER}" 2>/dev/null || adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
 
 # Because the account was created without a password
 # the account is initially locked.
