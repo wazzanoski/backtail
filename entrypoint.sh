@@ -32,17 +32,25 @@ if [ "${PGID}" -ne 100 ] && [ "${PGID}" -lt 1000 ]; then
   exit 1
 fi
 
-# Create USER
+# Create USER (if doesn't exist)
 # -S              Create a system user
 # -D              Don't assign a password
 # -H              Don't create home directory
-adduser -S -D -H "${USER}"
+if ! id -u "${USER}" >/dev/null 2>&1; then
+  adduser -S -D -H "${USER}"
+  log INFO "Created user '${USER}'"
+else
+  log INFO "User '${USER}' already exists"
+fi
+
 
 # Modify group with specified GID
 groupmod -o -g "${PGID}" "${USER}" 2>/dev/null
+log INFO "Set group '${USER}' GID to ${PGID}"
 
 # Modify user with specified UID and GID
 usermod -o -u "${PUID}" -g "${PGID}" "${USER}" 2>/dev/null
+log INFO "Set user '${USER}' UID to ${PUID} and GID to ${PGID}"
 
 # Because the account was created without a password
 # the account is initially locked.
