@@ -17,8 +17,10 @@ fi
 
 # User/group creation at runtime for PUID/PGID support
 # Validate PUID and PGID are numeric
-case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID \'${PUID}\' must be a numeric value" && exit 1 ;; esac
-case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID \'${PGID}\' must be a numeric value" && exit 1 ;; esac
+log DEBUG "PUID='${PUID}'"
+case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID '${PUID}' must be a numeric value" && exit 1 ;; esac
+log DEBUG "PGID='${PGID}'"
+case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID '${PGID}' must be a numeric value" && exit 1 ;; esac
 
 # Validate PUID is either 99 or >= 1000 (system user range)
 if [ "${PUID}" -ne 99 ] && [ "${PUID}" -lt 1000 ]; then
@@ -32,6 +34,7 @@ if [ "${PGID}" -ne 100 ] && [ "${PGID}" -lt 1000 ]; then
   exit 1
 fi
 
+log DEBUG "USER=${USER}"
 # Create USER (if doesn't exist)
 # -S              Create a system user
 # -D              Don't assign a password
@@ -42,7 +45,6 @@ if ! id -u "${USER}" >/dev/null 2>&1; then
 else
   log INFO "User '${USER}' already exists"
 fi
-
 
 # Modify group with specified GID
 groupmod -o -g "${PGID}" "${USER}" 2>/dev/null
@@ -58,9 +60,20 @@ log INFO "Set user '${USER}' UID to ${PUID} and GID to ${PGID}"
 # Unlock the account and set an invalid password hash:
 echo "${USER}:*" | chpasswd
 
+log DEBUG "UMASK='${UMASK}'"
 # Apply UMASK
 if [ -n "${UMASK}" ]; then
-  umask "${UMASK}"
+  # Validate UMASK is a valid octal value (000-777)
+  case "${UMASK}" in
+    [0-7][0-7][0-7])
+      umask "${UMASK}"
+      log INFO "Set UMASK to ${UMASK}"
+      ;;
+    *)
+      log ERROR "UMASK '${UMASK}' must be a valid octal value (000-777)"
+      exit 1
+      ;;
+  esac
 fi
  
 # Trap signals for graceful shutdown
