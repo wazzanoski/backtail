@@ -27,7 +27,7 @@ COPY run_tailscale.sh /
 
 # Setup entrypoint
 COPY logger.sh /
-COPY entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /
 
 # Set permissions for all scripts in a single layer
 RUN chmod 500 /run_sftp.sh /run_tailscale.sh /logger.sh /entrypoint.sh

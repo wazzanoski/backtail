@@ -15,22 +15,21 @@ if [ ! -d "${CONFIG_DIR}" ]; then
   exit 1
 fi
 
-# User/group creation at runtime for PUID/PGID support
-# Validate PUID and PGID are numeric
 log DEBUG "PUID='${PUID}'"
-case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID '${PUID}' must be a numeric value" && exit 1 ;; esac
-log DEBUG "PGID='${PGID}'"
-case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID '${PGID}' must be a numeric value" && exit 1 ;; esac
-
+# Validate PUID is numeric
+case "${PUID}" in ''|*[!0-9]*) log ERROR "PUID ('${PUID}') must be a numeric value" && exit 1 ;; esac
 # Validate PUID is either 99 or >= 1000 (system user range)
 if [ "${PUID}" -ne 99 ] && [ "${PUID}" -lt 1000 ]; then
-  log ERROR "PUID must be either 99 or >= 1000"
+  log ERROR "PUID ('${PUID}') must be either 99 or >=1000"
   exit 1
 fi
 
+log DEBUG "PGID='${PGID}'"
+# Validate PGID is numeric
+case "${PGID}" in ''|*[!0-9]*) log ERROR "PGID ('${PGID}') must be a numeric value" && exit 1 ;; esac
 # Validate PGID is either 100 or >= 1000 (system user range)
 if [ "${PGID}" -ne 100 ] && [ "${PGID}" -lt 1000 ]; then
-  log ERROR "PGID must be either 100 or >= 1000"
+  log ERROR "PGID ('${PGID}') must be either 100 or >=1000"
   exit 1
 fi
 
