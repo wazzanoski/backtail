@@ -36,7 +36,7 @@ fi
 # -S              Create a system user
 # -D              Don't assign a password
 # -H              Don't create home directory
-adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
+adduser -S -D -H "${USER}"
 
 # Modify group with specified GID
 groupmod -o -g "${PGID}" "${USER}" 2>/dev/null
