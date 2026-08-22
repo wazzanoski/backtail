@@ -47,11 +47,11 @@ else
 fi
 
 # Modify group with specified GID
-groupmod -o -g "${PGID}" "${USER}" 2>/dev/null
+groupmod -o -g "${PGID}" "${USER}"
 log INFO "Set group '${USER}' GID to ${PGID}"
 
 # Modify user with specified UID and GID
-usermod -o -u "${PUID}" -g "${PGID}" "${USER}" 2>/dev/null
+usermod -o -u "${PUID}" -g "${PGID}" "${USER}"
 log INFO "Set user '${USER}' UID to ${PUID} and GID to ${PGID}"
 
 # Because the account was created without a password
