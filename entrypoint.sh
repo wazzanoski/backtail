@@ -46,6 +46,12 @@ else
   log INFO "User '${USER}' already exists"
 fi
 
+# Ensure group exists (adduser should create it, but verify)
+if ! getent group "${USER}" >/dev/null 2>&1; then
+  addgroup "${USER}"
+  log INFO "Created group '${USER}'"
+fi
+
 # Modify group with specified GID
 groupmod -o -g "${PGID}" "${USER}"
 log INFO "Set group '${USER}' GID to ${PGID}"

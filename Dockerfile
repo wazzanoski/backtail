@@ -21,16 +21,16 @@ RUN mkdir -p /var/run/tailscale /var/lib/tailscale
 COPY sftp_jail.conf /etc/ssh/sshd_config.d/
 COPY run_sftp.sh /
 COPY banner.txt /etc/ssh/
-RUN chmod 500 /run_sftp.sh
 
 # Setup tailscale
 COPY run_tailscale.sh /
-RUN chmod 500 /run_tailscale.sh
 
 # Setup entrypoint
 COPY logger.sh /
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod 500 /logger.sh /entrypoint.sh
+
+# Set permissions for all scripts in a single layer
+RUN chmod 500 /run_sftp.sh /run_tailscale.sh /logger.sh /entrypoint.sh
 
 # Runtime configuration
 EXPOSE 22
