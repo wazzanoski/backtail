@@ -10,7 +10,7 @@ TSD_ARG_TUN="--tun=userspace-networking"
 TSD_LOG='/var/log/tailscaled'
 
 log INFO "Starting tailscaled in the background ..."
-tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &
+tailscaled "${TSD_ARG_STATEDIR}" "${TSD_ARG_TUN}" >> "${TSD_LOG}" 2>&1 &
 TSD_PID=${!}
 
 log INFO "Starting tailscale..."
@@ -27,7 +27,7 @@ else
     tail -20 "${TSD_LOG}"
     log INFO "======================="
   fi
-  kill ${TSD_PID} 2>/dev/null || true
+  kill "${TSD_PID}" 2>/dev/null || true
   exit 1
 fi
 

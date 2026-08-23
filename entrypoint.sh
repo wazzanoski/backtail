@@ -31,8 +31,8 @@ manage_group() {
   
   # Get group id of "${USER}" if it exists
   BACKTAIL_GID=""
-  if getent group ${USER} >/dev/null 2>&1; then
-    BACKTAIL_GID=$(getent group ${USER} | cut -d: -f3)
+  if getent group "${USER}" >/dev/null 2>&1; then
+    BACKTAIL_GID=$(getent group "${USER}" | cut -d: -f3)
     log DEBUG "Group '${USER}' exists with GID ${BACKTAIL_GID}"
   fi
 
@@ -54,18 +54,18 @@ manage_group() {
       delgroup "${PGID_GROUP}"
       log INFO "Deleted group '${PGID_GROUP}' with GID ${PGID}"
       # Now create ${USER} with PGID
-      addgroup -g "${PGID}" ${USER}
+      addgroup -g "${PGID}" "${USER}"
       log INFO "Created group '${USER}' with GID ${PGID}"
     fi
   else
     # No group exists with PGID
     if [ -n "${BACKTAIL_GID}" ]; then
       # ${USER} group exists but with wrong GID - modify it
-      groupmod -o -g "${PGID}" ${USER}
+      groupmod -o -g "${PGID}" "${USER}"
       log INFO "Modified group '${USER}' GID from ${BACKTAIL_GID} to ${PGID}"
     else
       # ${USER} group doesn't exist - create it with PGID
-      addgroup -g "${PGID}" ${USER}
+      addgroup -g "${PGID}" "${USER}"
       log INFO "Created group '${USER}' with GID ${PGID}"
     fi
   fi
@@ -85,9 +85,9 @@ manage_user() {
   log DEBUG "USER=${USER}"
   # Get user id of "${USER}" if it exists
   BACKTAIL_UID=""
-  if id -u ${USER} >/dev/null 2>&1; then
-    BACKTAIL_UID=$(id -u ${USER})
-    BACKTAIL_CURRENT_GID=$(id -g ${USER})
+  if id -u "${USER}" >/dev/null 2>&1; then
+    BACKTAIL_UID=$(id -u "${USER}")
+    BACKTAIL_CURRENT_GID=$(id -g "${USER}")
     log DEBUG "User '${USER}' exists with UID ${BACKTAIL_UID} and GID ${BACKTAIL_CURRENT_GID}"
   fi
 
@@ -105,7 +105,7 @@ manage_user() {
       # User with PUID is already named ${USER} - check group
       if [ "${BACKTAIL_CURRENT_GID}" != "${PGID}" ]; then
         # ${USER} exists but wrong group - modify it
-        usermod -g "${PGID}" ${USER}
+        usermod -g "${PGID}" "${USER}"
         log INFO "Modified user '${USER}' group from ${BACKTAIL_CURRENT_GID} to ${PGID}"
       else
         log INFO "User '${USER}' already exists with UID ${PUID} and GID ${PGID}"
@@ -125,11 +125,11 @@ manage_user() {
     # No user exists with PUID
     if [ -n "${BACKTAIL_UID}" ]; then
       # ${USER} user exists but with wrong UID - modify it
-      usermod -o -u "${PUID}" ${USER}
+      usermod -o -u "${PUID}" "${USER}"
       log INFO "Modified user '${USER}' UID from ${BACKTAIL_UID} to ${PUID}"
       # Also check and fix group if needed
       if [ "${BACKTAIL_CURRENT_GID}" != "${PGID}" ]; then
-        usermod -g "${PGID}" ${USER}
+        usermod -g "${PGID}" "${USER}"
         log INFO "Modified user '${USER}' group from ${BACKTAIL_CURRENT_GID} to ${PGID}"
       fi
     else
