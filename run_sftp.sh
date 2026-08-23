@@ -3,7 +3,7 @@
 # Setup logging
 SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
-. /logger.sh
+. ./logger.sh
 
 #ssh host key
 if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then

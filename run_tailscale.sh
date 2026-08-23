@@ -3,7 +3,7 @@
 # Setup logging
 SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
-. /logger.sh
+. ./logger.sh
 
 TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
 TSD_ARG_TUN="--tun=userspace-networking"

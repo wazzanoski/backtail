@@ -6,7 +6,7 @@ set -e
 # Setup logging
 SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
-. /logger.sh
+. ./logger.sh
 
 # Function to manage config
 manage_config() {
