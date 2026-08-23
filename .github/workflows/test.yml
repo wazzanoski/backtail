@@ -18,10 +18,7 @@ jobs:
     
     - name: Check shell script syntax
       run: |
-        shellcheck entrypoint.sh
-        shellcheck run_tailscale.sh
-        shellcheck run_sftp.sh
-        shellcheck logger.sh
+        shellcheck -x *.sh
     
     - name: Build Docker image
       run: docker build -t backtail:test .
