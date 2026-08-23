@@ -4,7 +4,8 @@
 set -e
 
 # Setup logging
-export SCRIPT_NAME=$(basename -s '.sh' "${0}")
+SCRIPT_NAME=$(basename -s '.sh' "${0}")
+export SCRIPT_NAME
 . /logger.sh
 
 # Function to manage config

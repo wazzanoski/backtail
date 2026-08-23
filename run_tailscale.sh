@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Setup logging
-export SCRIPT_NAME=$(basename -s '.sh' "${0}")
+SCRIPT_NAME=$(basename -s '.sh' "${0}")
+export SCRIPT_NAME
 . /logger.sh
 
 TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
