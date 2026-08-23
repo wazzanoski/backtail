@@ -9,7 +9,7 @@ TSD_ARG_STATEDIR="--statedir=${CONFIG_DIR}/.tailscaled_state"
 TSD_ARG_TUN="--tun=userspace-networking"
 TSD_LOG='/var/log/tailscaled'
 
-log INFO "Starting tailscaled..."
+log INFO "Starting tailscaled in the background ..."
 tailscaled ${TSD_ARG_STATEDIR} ${TSD_ARG_TUN} >> ${TSD_LOG} 2>&1 &
 TSD_PID=${!}
 
@@ -30,3 +30,5 @@ else
   kill ${TSD_PID} 2>/dev/null || true
   exit 1
 fi
+
+log INFO "Tailscale is running in the background with PID ${TSD_PID}"
