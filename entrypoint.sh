@@ -3,9 +3,8 @@
 # exit script if return code != 0
 set -e
 
-SCRIPT_NAME=$(basename -s '.sh' "${0}")
-
-# Source common functions
+# Setup logging
+export SCRIPT_NAME=$(basename -s '.sh' "${0}")
 . /logger.sh
 
 # Function to manage config

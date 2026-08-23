@@ -1,8 +1,7 @@
 #!/bin/sh
 
-SCRIPT_NAME=$(basename -s '.sh' "${0}")
-
-# Source common functions
+# Setup logging
+export SCRIPT_NAME=$(basename -s '.sh' "${0}")
 . /logger.sh
 
 #ssh host key
