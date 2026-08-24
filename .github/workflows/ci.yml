@@ -34,6 +34,10 @@ jobs:
       # Lint SSHD Configuration
       - name: Test SSHD Syntax
         run: |
+          # 1. Create the missing privilege directory that OpenSSH expects
+          sudo mkdir -p /run/sshd
+          
+          # 2. Safely run your configuration validation
           sudo sshd -t -f ./sftp_jail.conf
 
   test:
