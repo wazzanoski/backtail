@@ -13,7 +13,7 @@ RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"
 
 # System dependencies
-RUN apk add --no-cache openssh shadow
+RUN apk add --no-cache openssh
 
 # Copy Tailscale binaries from the tailscale image on Docker Hub.
 COPY --from=docker.io/tailscale/tailscale:stable "/usr/local/bin/tailscaled" "/usr/bin/tailscaled"

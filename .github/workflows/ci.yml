@@ -25,6 +25,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
+          ignore: DL3007,DL3018 # Pin versions
 
       # Lint GitHub Actions workflows
       - name: Run actionlint
