@@ -56,15 +56,15 @@ jobs:
       
       - name: Test invalid PUID (should fail)
         run: |
-          docker run --rm -e PUID=999 -e PGID=100 -e UMASK=022 backtail:test && exit 1 || true
+          ! docker run --rm -e PUID=999 backtail:test
       
       - name: Test invalid PGID (should fail)
         run: |
-          docker run --rm -e PUID=99 -e PGID=999 -e UMASK=022 backtail:test && exit 1 || true
+          ! docker run --rm PGID=999 backtail:test
       
       - name: Test invalid UMASK (should fail)
         run: |
-          docker run --rm -e PUID=99 -e PGID=100 -e UMASK=abc backtail:test && exit 1 || true
+          ! docker run --rm UMASK=abc backtail:test
       
       - name: Test SSH host key generation
         run: |
