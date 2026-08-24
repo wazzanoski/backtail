@@ -8,16 +8,6 @@ SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
 . ./logger.sh
 
-# Function to manage config
-manage_config() {
-  export CONFIG_DIR="/config"
-  # Check if config directory exists
-  if [ ! -d "${CONFIG_DIR}" ]; then
-    log ERROR "Config directory \'${CONFIG_DIR}\' does not exist!"
-    exit 1
-  fi
-}
-
 # Function to manage group
 manage_group() {
   log DEBUG "PGID='${PGID}'"
@@ -167,9 +157,6 @@ manage_umask() {
     esac
   fi
 }
-
-# Manage config
-manage_config
 
 # Manage group
 manage_group
