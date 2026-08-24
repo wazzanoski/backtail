@@ -95,7 +95,7 @@ manage_user() {
       # User with PUID is already named ${USER} - check group
       if [ "${BACKTAIL_CURRENT_GID}" != "${PGID}" ]; then
         # ${USER} exists but wrong group - modify it
-        usermod -g "${PGID}" "${USER}"
+        usermod -g "${USER}" "${USER}"
         log INFO "Modified user '${USER}' group from ${BACKTAIL_CURRENT_GID} to ${PGID}"
       else
         log INFO "User '${USER}' already exists with UID ${PUID} and GID ${PGID}"
@@ -108,7 +108,7 @@ manage_user() {
       # -S              Create a system user
       # -D              Don't assign a password
       # -H              Don't create home directory
-      adduser -S -D -H -u "${PUID}" -G "${PGID}" "${USER}"
+      adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
       log INFO "Created user '${USER}' with UID ${PUID} and GID ${PGID}"
     fi
   else
@@ -119,7 +119,7 @@ manage_user() {
       log INFO "Modified user '${USER}' UID from ${BACKTAIL_UID} to ${PUID}"
       # Also check and fix group if needed
       if [ "${BACKTAIL_CURRENT_GID}" != "${PGID}" ]; then
-        usermod -g "${PGID}" "${USER}"
+        usermod -g "${USER}" "${USER}"
         log INFO "Modified user '${USER}' group from ${BACKTAIL_CURRENT_GID} to ${PGID}"
       fi
     else
@@ -127,7 +127,7 @@ manage_user() {
       # -S              Create a system user
       # -D              Don't assign a password
       # -H              Don't create home directory
-      adduser -S -D -H -u "${PUID}" -G "${PGID}" "${USER}"
+      adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
       log INFO "Created user '${USER}' with UID ${PUID} and GID ${PGID}"
     fi
   fi
