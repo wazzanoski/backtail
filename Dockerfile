@@ -12,6 +12,10 @@ ENV UMASK=000
 RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"
 
+# Remove unnecessary users & groups
+RUN deluser nobody && delgroup nobody && delgroup nogroup
+RUN deluser guest && delgroup users
+
 # System dependencies
 RUN apk add --no-cache openssh
 
