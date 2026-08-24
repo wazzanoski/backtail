@@ -171,11 +171,11 @@ manage_umask() {
 # Manage config
 manage_config
 
-# Manage user
-manage_user
-
 # Manage group
 manage_group
+
+# Manage user
+manage_user
 
 # Manage umask
 manage_umask
