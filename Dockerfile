@@ -23,9 +23,9 @@ RUN mkdir -p "/var/run/tailscale" "/var/lib/tailscale"
 # User/group creation moved to entrypoint.sh for runtime PUID/PGID support
 
 # Setup sftp
-COPY "sftp_jail.conf" "/etc/ssh/sshd_config.d/""
+COPY "sftp_jail.conf" "/etc/ssh/sshd_config.d/"
 COPY "run_sftp.sh" /
-COPY "banner.txt" "/etc/ssh/""
+COPY "banner.txt" "/etc/ssh/"
 
 # Setup tailscale
 COPY "run_tailscale.sh" /
