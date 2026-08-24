@@ -31,6 +31,11 @@ jobs:
       - name: Run actionlint
         uses: raven-actions/actionlint@v2.2.0
 
+      # Lint SSHD Configuration
+      - name: Test SSHD Syntax
+        run: |
+          sudo sshd -t -f ./sftp_jail.conf
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
