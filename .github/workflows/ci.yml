@@ -17,8 +17,8 @@ jobs:
       # Lint Shell Scripts
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@2.0.0
-        with:
-          sc_args: "-x" # Fix SC1091 errors
+        env:
+          SHELLCHECK_OPTS: "-x" # Fix SC1091 errors
 
       # Lint Dockerfile
       - name: Run Hadolint
