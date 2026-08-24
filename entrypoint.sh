@@ -167,6 +167,13 @@ manage_user
 # Manage umask
 manage_umask
 
+# Check if dry run mode is enabled
+if [ "${DRY_RUN}" = "true" ]; then
+  log INFO "Dry run mode enabled - skipping service startup"
+  log INFO "Configuration validation completed successfully"
+  exit 0
+fi
+
 # Trap signals for graceful shutdown
 trap 'kill $(jobs -p)' EXIT TERM INT
  

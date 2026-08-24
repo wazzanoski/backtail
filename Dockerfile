@@ -8,6 +8,8 @@ ENV BACKUP_DIR="/home/${USER}"
 ENV PUID=99
 ENV PGID=100
 ENV UMASK=000
+# Dry run mode - validate configuration without starting services
+ENV DRY_RUN=false
 
 RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"

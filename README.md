@@ -116,6 +116,28 @@ Specifics on the use of these tools is beyond the scope of this documentation.
 ## Banner Customisation
 You can customise the banner text that is displayed when connected via sftp by editing the file 'banner.txt' in the Container Path 'Config'.
 
+## Dry Run Mode
+The container supports a dry-run mode that validates configuration without starting the actual services. This is useful for testing environment variables and user/group setup.
+
+To enable dry-run mode, set the `DRY_RUN` environment variable to `true`:
+
+Example:
+```
+docker run --rm -e DRY_RUN=true backtail
+```
+
+In dry-run mode, the container will:
+- Validate PUID, PGID, and UMASK values
+- Create the specified user and group
+- Set the correct permissions
+- Exit successfully without starting Tailscale or SSH services
+
+This is particularly useful for:
+- Testing configuration before deployment
+- Validating user/group permissions
+- CI/CD pipeline testing
+- Troubleshooting configuration issues
+
 ## Terminology
 
 | Term | Definition |
