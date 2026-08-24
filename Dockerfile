@@ -13,7 +13,7 @@ RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"
 
 # Remove unnecessary users & groups
-RUN deluser nobody && delgroup nobody && delgroup nogroup
+RUN deluser nobody && delgroup nogroup
 RUN deluser guest && delgroup users
 
 # System dependencies
