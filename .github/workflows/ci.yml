@@ -60,31 +60,31 @@ jobs:
 
       - name: Test invalid PUID=999 - in system user range (should fail)
         run: |
-          ! docker run --rm PUID=999 backtail:test
+          ! docker run --rm -e PUID=999 backtail:test
 
       - name: Test invalid PGID=0 - "root" (should fail)
         run: |
-          ! docker run --rm PGID=0 backtail:test
+          ! docker run --rm -e PGID=0 backtail:test
       
       - name: Test invalid PGID=65533 - "nogroup" (should fail)
         run: |
-          ! docker run --rm PGID=65533 backtail:test
+          ! docker run --rm -e PGID=65533 backtail:test
  
       - name: Test invalid PGID=65534 - "nobody" (should fail)
         run: |
-          ! docker run --rm PGID=65534 backtail:test
+          ! docker run --rm -e PGID=65534 backtail:test
 
       - name: Test invalid PGID=999 - in system user range (should fail)
         run: |
-          ! docker run --rm PGID=999 backtail:test
+          ! docker run --rm -e PGID=999 backtail:test
 
       - name: Test invalid UMASK=abc (should fail)
         run: |
-          ! docker run --rm UMASK=abc backtail:test
+          ! docker run --rm -e UMASK=abc backtail:test
       
       - name: Test invalid UMASK=888 (should fail)
         run: |
-          ! docker run --rm UMASK=888 backtail:test
+          ! docker run --rm -e UMASK=888 backtail:test
 
       - name: Test valid PUID/PGID/UMASK combinations
         run: |
