@@ -36,7 +36,6 @@ jobs:
         run: |
           # 1. Create the missing privilege directory that OpenSSH expects
           sudo mkdir -p /run/sshd
-          
           # 2. Safely run your configuration validation
           sudo sshd -t -f ./sftp_jail.conf
 
@@ -51,30 +50,53 @@ jobs:
       - name: Build Docker image
         run: docker build -t backtail:test .
       
+      - name: Test invalid PUID=0 - "root" (should fail)
+        run: |
+          ! docker run --rm -e PUID=0 backtail:test
+
+      - name: Test invalid PUID=65534 - "nobody" (should fail)
+        run: |
+          ! docker run --rm -e PUID=65534 backtail:test
+
+      - name: Test invalid PUID=999 - in system user range (should fail)
+        run: |
+          ! docker run --rm PUID=999 backtail:test
+
+      - name: Test invalid PGID=0 - "root" (should fail)
+        run: |
+          ! docker run --rm PGID=0 backtail:test
+      
+      - name: Test invalid PGID=65533 - "nogroup" (should fail)
+        run: |
+          ! docker run --rm PGID=65533 backtail:test
+ 
+      - name: Test invalid PGID=65534 - "nobody" (should fail)
+        run: |
+          ! docker run --rm PGID=65534 backtail:test
+
+      - name: Test invalid PGID=999 - in system user range (should fail)
+        run: |
+          ! docker run --rm PGID=999 backtail:test
+
+      - name: Test invalid UMASK=abc (should fail)
+        run: |
+          ! docker run --rm UMASK=abc backtail:test
+      
+      - name: Test invalid UMASK=888 (should fail)
+        run: |
+          ! docker run --rm UMASK=888 backtail:test
+
       - name: Test valid PUID/PGID/UMASK combinations
         run: |
           # Test system user range (PUID=99, PGID=100)
           docker run --rm -e PUID=99 -e PGID=100 -e UMASK=022 backtail:test || exit 1
           docker run --rm -e PUID=99 -e PGID=100 -e UMASK=002 backtail:test || exit 1
           docker run --rm -e PUID=99 -e PGID=100 -e UMASK=000 backtail:test || exit 1
-          
           # Test regular user range (PUID>=1000, PGID>=1000)
           docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=022 backtail:test || exit 1
           docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=002 backtail:test || exit 1
-          docker run --rm -e PUID=1001 -e PGID=1001 -e UMASK=000 backtail:test || exit 1
-      
-      - name: Test invalid PUID (should fail)
-        run: |
-          ! docker run --rm -e PUID=999 backtail:test
-      
-      - name: Test invalid PGID (should fail)
-        run: |
-          ! docker run --rm PGID=999 backtail:test
-      
-      - name: Test invalid UMASK (should fail)
-        run: |
-          ! docker run --rm UMASK=abc backtail:test
-      
+          docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=000 backtail:test || exit 1
+
       - name: Test SSH host key generation
         run: |
           mkdir -p /tmp/test-config
