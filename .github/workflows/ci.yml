@@ -111,6 +111,8 @@ jobs:
           docker stop backtail-test-keys
           docker rm backtail-test-keys
           test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
+
+          ls -la /tmp/test-config/
           rm -rf /tmp/test-config
       
       - name: Test banner file creation
