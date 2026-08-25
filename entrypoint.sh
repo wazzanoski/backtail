@@ -165,13 +165,21 @@ update_permissions() {
 	
 	# Calculate directory permissions based on UMASK
 	# UMASK is the complement of permissions (777 - UMASK = permissions)
-	dir_perms=$((0777 - 0${UMASK}))
-  log DEBUG "dir_perms=${dir_perms}"
+	# Use printf to convert octal to decimal for shell arithmetic
+	dir_perms_dec=$((8#777 - 8#${UMASK}))
+  log DEBUG "dir_perms=${dir_perms_dec}"
 	
 	# Calculate file permissions based on UMASK  
 	# For files, we typically start with 666 (no execute by default)
-	file_perms=$((0666 - 0${UMASK}))
-  log DEBUG "file_perms=${file_perms}"
+	file_perms_dec=$((8#666 - 8#${UMASK}))
+  log DEBUG "file_perms=${file_perms_dec}"
+	
+	# Convert back to octal for chmod
+	dir_perms=$(printf "%o" "${dir_perms_dec}")
+	file_perms=$(printf "%o" "${file_perms_dec}")
+	
+	log DEBUG "dir_perms_octal=${dir_perms}"
+	log DEBUG "file_perms_octal=${file_perms}"
 	
 	# Apply directory permissions to directories
 	find "${1}" -type d -exec chmod "${dir_perms}" {} \;
