@@ -101,20 +101,28 @@ jobs:
       - name: Test SSH host key generation
         run: |
           mkdir -p /tmp/test-config
-          docker run --rm -v /tmp/test-config:/config \
-            -e PUID=99 -e PGID=100 -e UMASK=022 -e TAILSCALE_ENABLED=false \
-            backtail:test || true
-          docker stop backtail-test
+          docker run -d --name backtail-test-keys \
+            -v /tmp/test-config:/config \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          # Wait for SSHD to start and generate keys
+          sleep 3
+          docker stop backtail-test-keys
+          docker rm backtail-test-keys
           test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
           rm -rf /tmp/test-config
       
       - name: Test banner file creation
         run: |
           mkdir -p /tmp/test-config
-          docker run --rm -v /tmp/test-config:/config \
-            -e PUID=99 -e PGID=100 -e UMASK=022 \
-            backtail:test || true
-          docker stop backtail-test
+          docker run -d --name backtail-test-banner \
+            -v /tmp/test-config:/config \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          # Wait for SSHD to start and create banner
+          sleep 3
+          docker stop backtail-test-banner
+          docker rm backtail-test-banner
           test -f /tmp/test-config/banner.txt || exit 1
           rm -rf /tmp/test-config
       
