@@ -146,19 +146,18 @@ jobs:
       - name: Test SFTP file transfer
         run: |
           # Create test environment
-          mkdir -p /tmp/test-backup /tmp/test-config
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
           
           # Generate SSH key pair for testing
           ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
           
           # Setup authorized_keys
-          cp /tmp/test_key.pub /tmp/test-config/authorized_keys
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
           
           # Start container in background (Tailscale disabled for testing)
           docker run -d --name backtail-test \
             -v /tmp/test-config:/config \
             -v /tmp/test-backup:/home/backtail \
-            -e PUID=99 -e PGID=100 -e UMASK=022 \
             -e TAILSCALE_ENABLED=false \
             backtail:test
           
@@ -176,7 +175,7 @@ jobs:
           echo "test content" > /tmp/test_file.txt
           sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            backtail@127.0.0.1:/home/backup/ <<EOF
+            backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
           quit
