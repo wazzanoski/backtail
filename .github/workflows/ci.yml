@@ -115,6 +115,7 @@ jobs:
           ls -la /tmp/test-config/
           docker stop backtail-test-keys
           docker rm backtail-test-keys
+          ls -la /tmp/test-config/
           test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
 
           ls -la /tmp/test-config/
