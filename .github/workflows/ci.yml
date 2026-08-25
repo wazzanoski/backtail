@@ -112,6 +112,7 @@ jobs:
             backtail:test
           # Wait for SSHD to start and generate keys
           sleep 3
+          ls -la /tmp/test-config/
           docker stop backtail-test-keys
           docker rm backtail-test-keys
           test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
