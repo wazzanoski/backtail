@@ -171,10 +171,15 @@ jobs:
             sleep 2
           done
           
+          # Debug: Check if authorized_keys file exists and is readable
+          docker exec backtail-test ls -la /home/backtail/.ssh/
+          docker exec backtail-test cat /home/backtail/.ssh/authorized_keys
+          
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
           sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=DEBUG3 \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
