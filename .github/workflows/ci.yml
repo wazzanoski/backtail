@@ -100,7 +100,11 @@ jobs:
 
       - name: Test SSH host key generation
         run: |
+          whoami
+          id -u
+          id -g
           mkdir -p /tmp/test-config
+          ls -la /tmp/test-config/
           docker run -d --name backtail-test-keys \
             -v /tmp/test-config:/config \
             -e PUID="$(id -u)" -e PGID="$(id -g)" \
