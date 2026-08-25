@@ -161,7 +161,7 @@ manage_umask() {
 update_permissions() {
   set +e
 	chown -R "${PUID}":"${PGID}" "${1}"
-	exit_code_chown=$?
+#	exit_code_chown=$?
 	
 	# Calculate directory permissions based on UMASK
 	# UMASK is the complement of permissions (777 - UMASK = permissions)
@@ -177,7 +177,7 @@ update_permissions() {
 	# Apply file permissions to files
 	find "${1}" -type f -exec chmod "${file_perms}" {} \;
 	
-	exit_code_chmod=$?
+#	exit_code_chmod=$?
 	set -e
 }
 
