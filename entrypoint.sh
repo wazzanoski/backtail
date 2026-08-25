@@ -166,10 +166,12 @@ update_permissions() {
 	# Calculate directory permissions based on UMASK
 	# UMASK is the complement of permissions (777 - UMASK = permissions)
 	dir_perms=$((0777 - 0${UMASK}))
+  log DEBUG "dir_perms=${dir_perms}"
 	
 	# Calculate file permissions based on UMASK  
 	# For files, we typically start with 666 (no execute by default)
 	file_perms=$((0666 - 0${UMASK}))
+  log DEBUG "file_perms=${file_perms}"
 	
 	# Apply directory permissions to directories
 	find "${1}" -type d -exec chmod "${dir_perms}" {} \;
