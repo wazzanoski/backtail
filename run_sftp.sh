@@ -9,7 +9,6 @@ export SCRIPT_NAME
 if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   log INFO "Generating SSH host key..."
   su - "${USER}" -c "ssh-keygen -t ed25519 -f '${CONFIG_DIR}/ssh_host_ed25519_key' -N ''"
-  
 fi
 cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
 chmod 600 '/etc/ssh/ssh_host_ed25519_key'

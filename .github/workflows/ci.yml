@@ -113,6 +113,7 @@ jobs:
           # Wait for SSHD to start and generate keys
           sleep 3
           ls -la /tmp/test-config/
+          docker logs backtail-test-keys
           docker stop backtail-test-keys
           docker rm backtail-test-keys
           ls -la /tmp/test-config/
