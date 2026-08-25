@@ -8,7 +8,7 @@ export SCRIPT_NAME
 #ssh host key
 if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
   log INFO "Generating SSH host key..."
-  su - "${USER}" -c "ssh-keygen -t ed25519 -f '${CONFIG_DIR}/ssh_host_ed25519_key' -N ''"
+  su -s /bin/sh "${USER}" -c "ssh-keygen -t ed25519 -f '${CONFIG_DIR}/ssh_host_ed25519_key' -N ''"
 fi
 cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
 chmod 600 '/etc/ssh/ssh_host_ed25519_key'
@@ -16,7 +16,7 @@ chmod 600 '/etc/ssh/ssh_host_ed25519_key'
 #banner
 if [ ! -f "${CONFIG_DIR}/banner.txt" ]; then
   log INFO "Setting default banner..."
-  su - "${USER}" -c "cp '/etc/ssh/banner.txt' '${CONFIG_DIR}/'"
+  su -s /bin/sh "${USER}" -c "cp '/etc/ssh/banner.txt' '${CONFIG_DIR}/'"
 fi
 
 log INFO "Starting sshd..."
