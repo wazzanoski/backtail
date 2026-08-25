@@ -181,7 +181,6 @@ jobs:
           echo "test content" > /tmp/test_file.txt
           sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o LogLevel=DEBUG3 \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls

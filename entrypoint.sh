@@ -158,6 +158,29 @@ manage_umask() {
   fi
 }
 
+update_permissions() {
+  set +e
+	chown -R "${PUID}":"${PGID}" "${1}"
+	exit_code_chown=$?
+	
+	# Calculate directory permissions based on UMASK
+	# UMASK is the complement of permissions (777 - UMASK = permissions)
+	dir_perms=$((0777 - 0${UMASK}))
+	
+	# Calculate file permissions based on UMASK  
+	# For files, we typically start with 666 (no execute by default)
+	file_perms=$((0666 - 0${UMASK}))
+	
+	# Apply directory permissions to directories
+	find "${1}" -type d -exec chmod "${dir_perms}" {} \;
+	
+	# Apply file permissions to files
+	find "${1}" -type f -exec chmod "${file_perms}" {} \;
+	
+	exit_code_chmod=$?
+	set -e
+}
+
 # Manage group
 manage_group
 
@@ -166,6 +189,9 @@ manage_user
 
 # Manage umask
 manage_umask
+
+update_permissions "${CONFIG_DIR}"
+update_permissions "${BACKUP_DIR}"
 
 # Check if dry run mode is enabled
 if [ "${DRY_RUN}" = "true" ]; then
