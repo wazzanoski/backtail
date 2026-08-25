@@ -176,5 +176,11 @@ fi
 
 # Trap signals for graceful shutdown
 trap 'kill $(jobs -p)' EXIT TERM INT
- 
-/run_tailscale.sh && /run_sftp.sh
+
+# Start services based on configuration
+if [ "${TAILSCALE_ENABLED}" = "true" ]; then
+  /run_tailscale.sh
+else
+  log INFO "Tailscale disabled - starting SSH only"
+fi
+/run_sftp.sh

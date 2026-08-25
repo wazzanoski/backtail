@@ -10,6 +10,8 @@ ENV PGID=100
 ENV UMASK=000
 # Dry run mode - validate configuration without starting services
 ENV DRY_RUN=false
+# Tailscale control - disable for testing/local networking
+ENV TAILSCALE_ENABLED=true
 
 RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"

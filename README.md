@@ -138,6 +138,24 @@ This is particularly useful for:
 - CI/CD pipeline testing
 - Troubleshooting configuration issues
 
+## Tailscale Control
+The container supports disabling Tailscale for testing scenarios or when using alternative networking methods. This is useful for local testing and CI environments where Tailscale networking isn't required.
+
+To disable Tailscale, set the `TAILSCALE_ENABLED` environment variable to `false`:
+
+Example:
+```
+docker run --rm -e TAILSCALE_ENABLED=false backtail
+```
+
+When Tailscale is disabled:
+- Only SSH/SFTP services will start
+- The container will be accessible via standard networking
+- Useful for local testing and CI/CD pipelines
+- Can be combined with `DRY_RUN=true` for configuration testing only
+
+**Note:** In production environments, Tailscale should remain enabled for secure networking.
+
 ## Terminology
 
 | Term | Definition |

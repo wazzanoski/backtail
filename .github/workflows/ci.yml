@@ -55,6 +55,10 @@ jobs:
           docker run --rm -e DRY_RUN=true \
             backtail:test || exit 1
 
+      - name: Test invalid PUID=abc (should fail)
+        run: |
+          ! docker run --rm -e PUID=abc -e DRY_RUN=true backtail:test
+
       - name: Test invalid PUID=0 - "root" (should fail)
         run: |
           ! docker run --rm -e PUID=0 -e DRY_RUN=true backtail:test
@@ -62,6 +66,10 @@ jobs:
       - name: Test invalid PUID=999 - in system user range (should fail)
         run: |
           ! docker run --rm -e PUID=999 -e DRY_RUN=true backtail:test
+
+      - name: Test invalid PGID=abc (should fail)
+        run: |
+          ! docker run --rm -e PGID=abc -e DRY_RUN=true backtail:test
 
       - name: Test invalid PGID=0 - "root" (should fail)
         run: |
@@ -94,8 +102,9 @@ jobs:
         run: |
           mkdir -p /tmp/test-config
           docker run --rm -v /tmp/test-config:/config \
-            -e PUID=99 -e PGID=100 -e UMASK=022 \
+            -e PUID=99 -e PGID=100 -e UMASK=022 -e TAILSCALE_ENABLED=false \
             backtail:test || true
+          docker stop backtail-test
           test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
           rm -rf /tmp/test-config
       
@@ -105,6 +114,7 @@ jobs:
           docker run --rm -v /tmp/test-config:/config \
             -e PUID=99 -e PGID=100 -e UMASK=022 \
             backtail:test || true
+          docker stop backtail-test
           test -f /tmp/test-config/banner.txt || exit 1
           rm -rf /tmp/test-config
       
@@ -124,6 +134,53 @@ jobs:
             backtail:test sh -c "umask | grep -q 022" || exit 1
           docker run --rm -e PUID=99 -e PGID=100 -e UMASK=002 \
             backtail:test sh -c "umask | grep -q 002" || exit 1
+
+      - name: Test SFTP file transfer
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-backup /tmp/test-config
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          
+          # Setup authorized_keys
+          cp /tmp/test_key.pub /tmp/test-config/authorized_keys
+          
+          # Start container in background (Tailscale disabled for testing)
+          docker run -d --name backtail-test \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/home/backtail \
+            -e PUID=99 -e PGID=100 -e UMASK=022 \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test SFTP connection and file transfer
+          echo "test content" > /tmp/test_file.txt
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            backtail@127.0.0.1:/home/backup/ <<EOF
+          put /tmp/test_file.txt test_file.txt
+          ls
+          quit
+          EOF
+          
+          # Verify file was transferred
+          docker exec backtail-test test -f /home/backtail/test_file.txt || exit 1
+          
+          # Cleanup
+          docker stop backtail-test
+          docker rm backtail-test
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub /tmp/test_file.txt
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
