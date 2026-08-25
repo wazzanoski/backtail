@@ -3,7 +3,7 @@ FROM alpine:latest
 # Environment variables
 ENV CONFIG_DIR="/config"
 ENV USER="backtail"
-ENV BACKUP_DIR="/home/${USER}"
+ENV BACKUP_DIR="/data/${USER}"
 # Default permissions for Unraid
 ENV PUID=99
 ENV PGID=100
@@ -15,6 +15,8 @@ ENV TAILSCALE_ENABLED=true
 
 RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"
+RUN mkdir -p "${BACKUP_DIR}"
+VOLUME "${BACKUP_DIR}"
 
 # Remove unnecessary users & groups
 RUN deluser nobody && delgroup nogroup
