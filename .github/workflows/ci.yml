@@ -171,7 +171,8 @@ jobs:
             sleep 2
           done
           
-          # Debug: Check if authorized_keys file exists and is readable
+          # Debug: Check user information and file ownership
+          docker exec backtail-test id backtail
           docker exec backtail-test ls -la /home/backtail/.ssh/
           docker exec backtail-test cat /home/backtail/.ssh/authorized_keys
           
