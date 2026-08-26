@@ -187,7 +187,7 @@ jobs:
           docker exec backtail-test id backtail
           docker exec backtail-test ls -la /data/backtail/.ssh/
           docker exec backtail-test cat /data/backtail/.ssh/authorized_keys
-          docker exec backtail-test ls -la /etc/ssh/ssh_config.d/*.conf
+          docker exec backtail-test ls -la /etc/ssh/sshd_config.d/*.conf
           
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
