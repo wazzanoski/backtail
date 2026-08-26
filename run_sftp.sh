@@ -5,13 +5,15 @@ SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
 . ./logger.sh
 
+HOST_KEY_FILE="ssh_host_ed25519_key"
+
 #ssh host key
-if [ ! -f "${CONFIG_DIR}/ssh_host_ed25519_key" ]; then
+if [ ! -f "${CONFIG_DIR}/${HOST_KEY_FILE}" ]; then
   log INFO "Generating SSH host key..."
-  su -s /bin/sh "${USER}" -c "ssh-keygen -t ed25519 -f '${CONFIG_DIR}/ssh_host_ed25519_key' -N ''"
+  su -s /bin/sh "${USER}" -c "ssh-keygen -t ed25519 -f '${CONFIG_DIR}/${HOST_KEY_FILE}' -N ''"
 fi
-cp "${CONFIG_DIR}/ssh_host_ed25519_key" '/etc/ssh/'
-chmod 600 '/etc/ssh/ssh_host_ed25519_key'
+cp "${CONFIG_DIR}/${HOST_KEY_FILE}" '/etc/ssh/'
+chmod 600 "/etc/ssh/${HOST_KEY_FILE}"
 
 #banner
 if [ ! -f "${CONFIG_DIR}/banner.txt" ]; then

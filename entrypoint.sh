@@ -107,8 +107,8 @@ manage_user() {
       # Now create ${USER} with PUID and PGID
       # -S              Create a system user
       # -D              Don't assign a password
-      # -H              Don't create home directory
-      adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
+      # -h              Set home directory
+      adduser -S -D -h "/data/${USER}" -u "${PUID}" -G "${USER}" "${USER}"
       log INFO "Created user '${USER}' with UID ${PUID} and GID ${PGID}"
     fi
   else
@@ -126,8 +126,8 @@ manage_user() {
       # ${USER} user doesn't exist - create it with PUID and PGID
       # -S              Create a system user
       # -D              Don't assign a password
-      # -H              Don't create home directory
-      adduser -S -D -H -u "${PUID}" -G "${USER}" "${USER}"
+      # -h              Set home directory
+      adduser -S -D -h "/data/${USER}" -u "${PUID}" -G "${USER}" "${USER}"
       log INFO "Created user '${USER}' with UID ${PUID} and GID ${PGID}"
     fi
   fi
