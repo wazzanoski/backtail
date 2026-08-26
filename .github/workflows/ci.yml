@@ -168,6 +168,7 @@ jobs:
           
           # Start container in background (Tailscale disabled for testing)
           docker run -d --name backtail-test \
+            -p 2222:22 \
             -v /tmp/test-config:/config \
             -v /tmp/test-backup:/data/backtail \
             -e PUID="$(id -u)" -e PGID="$(id -g)" \
@@ -206,6 +207,7 @@ jobs:
           echo "test content" > /tmp/test_file.txt
           sftp -vvv -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
+            -o Port=2222 \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
