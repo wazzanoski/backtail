@@ -195,6 +195,12 @@ jobs:
           # Check SSH key file
           ls -la /tmp/test_key
           ssh-keygen -l -f /tmp/test_key
+          # Verify the key matches
+          echo "Checking key match:"
+          echo "Public key:"
+          cat /tmp/test_key.pub
+          echo "Authorized keys in container:"
+          docker exec backtail-test cat /data/backtail/.ssh/authorized_keys
           
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
