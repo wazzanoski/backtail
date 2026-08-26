@@ -20,4 +20,4 @@ if [ ! -f "${CONFIG_DIR}/banner.txt" ]; then
 fi
 
 log INFO "Starting sshd..."
-/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config.d/sftp_jail.conf
+/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config.d/sftp_jail.conf -ddd
