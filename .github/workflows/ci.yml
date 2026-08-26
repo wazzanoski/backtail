@@ -164,7 +164,6 @@ jobs:
           
           # Setup authorized_keys
           cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          ls -la /tmp/test_key
           
           # Start container in background (Tailscale disabled for testing)
           docker run -d --name backtail-test \
@@ -185,27 +184,9 @@ jobs:
             sleep 2
           done
           
-          # Debug: Check user information and file ownership
-          docker exec backtail-test id backtail
-          docker exec backtail-test ls -la /data/backtail/.ssh/
-          docker exec backtail-test cat /data/backtail/.ssh/authorized_keys
-          docker exec backtail-test ls -la /etc/ssh/sshd_config.d/
-          docker exec backtail-test /usr/sbin/sshd -t -f /etc/ssh/sshd_config.d/sftp_jail.conf
-          docker exec backtail-test ps aux | grep sshd
-          docker logs backtail-test
-          # Check SSH key file
-          ls -la /tmp/test_key
-          ssh-keygen -l -f /tmp/test_key
-          # Verify the key matches
-          echo "Checking key match:"
-          echo "Public key:"
-          cat /tmp/test_key.pub
-          echo "Authorized keys in container:"
-          docker exec backtail-test cat /data/backtail/.ssh/authorized_keys
-          
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
-          sftp -vvv -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2222 \
             backtail@127.0.0.1 <<EOF
@@ -216,9 +197,6 @@ jobs:
           
           # Verify file was transferred
           docker exec backtail-test test -f /data/backtail/test_file.txt || exit 1
-          
-          # Check container logs before cleanup
-          docker logs backtail-test
           
           # Cleanup
           docker stop backtail-test
