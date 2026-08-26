@@ -162,8 +162,7 @@ update_permissions() {
   set +e
 	# Skip permission changes for filesystems that don't support Unix permissions
 	# (e.g., NTFS, exFAT, FAT32 on USB drives mounted on Unraid)
-	chown -R "${PUID}":"${PGID}" "${1}" 2>/dev/null
-  if (( ${?} )); then
+	if ! chown -R "${PUID}":"${PGID}" "${1}" 2>/dev/null; then
 		log WARN "Unable to chown '${1}', assuming SMB mountpoint"
 	else
 		log INFO "Successfully set ownership on '${1}'"
@@ -185,16 +184,14 @@ update_permissions() {
 	log DEBUG "file_perms=${file_perms}"
 	
 	# Apply directory permissions to directories
-	find "${1}" -type d -exec chmod "${dir_perms}" {} \;
-  if (( ${?} )); then
+	if ! find "${1}" -type d -exec chmod "${dir_perms}" {} \; 2>/dev/null; then
 		log WARN "Unable to chmod '${1}' directories, assuming SMB mountpoint"
 	else
 		log INFO "Successfully set directory permissions on '${1}'"
 	fi
 	
 	# Apply file permissions to files
-	find "${1}" -type f -exec chmod "${file_perms}" {} \;
-  if (( ${?} )); then
+	if ! find "${1}" -type f -exec chmod "${file_perms}" {} \; 2>/dev/null; then
 		log WARN "Unable to chmod '${1}' files, assuming SMB mountpoint"
 	else
 		log INFO "Successfully set file permissions on '${1}'"
