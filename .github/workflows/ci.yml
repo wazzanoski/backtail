@@ -195,7 +195,7 @@ jobs:
           
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
-          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -vvv -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
