@@ -183,6 +183,11 @@ jobs:
             sleep 2
           done
           
+          # Debug: Check user information and file ownership
+          docker exec backtail-test id backtail
+          docker exec backtail-test ls -la /data/backtail/.ssh/
+          docker exec backtail-test cat /data/backtail/.ssh/authorized_keys
+          
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
           sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
