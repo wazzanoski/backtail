@@ -164,7 +164,7 @@ jobs:
           
           # Setup authorized_keys
           cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          cat /tmp/test-backup/.ssh/authorized_keys
+          ls -la /tmp/test_key
           
           # Start container in background (Tailscale disabled for testing)
           docker run -d --name backtail-test \
@@ -192,6 +192,9 @@ jobs:
           docker exec backtail-test /usr/sbin/sshd -t -f /etc/ssh/sshd_config.d/sftp_jail.conf
           docker exec backtail-test ps aux | grep sshd
           docker logs backtail-test
+          # Check SSH key file
+          ls -la /tmp/test_key
+          ssh-keygen -l -f /tmp/test_key
           
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
