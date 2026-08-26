@@ -217,6 +217,9 @@ jobs:
           # Verify file was transferred
           docker exec backtail-test test -f /data/backtail/test_file.txt || exit 1
           
+          # Check container logs before cleanup
+          docker logs backtail-test
+          
           # Cleanup
           docker stop backtail-test
           docker rm backtail-test
