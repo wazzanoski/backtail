@@ -250,6 +250,354 @@ jobs:
           docker rm backtail-test-health
           rm -rf /tmp/test-backup /tmp/test-config
 
+      - name: Test password authentication rejection
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-auth \
+            -p 2224:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-auth pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test password authentication should fail
+          ! sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2224 \
+            -o PreferredAuthentications=password \
+            backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied"
+          
+          # Cleanup
+          docker stop backtail-test-auth
+          docker rm backtail-test-auth
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+
+      - name: Test keyboard-interactive authentication rejection
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-kbi \
+            -p 2225:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-kbi pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test keyboard-interactive authentication should fail
+          ! ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2225 \
+            -o PreferredAuthentications=keyboard-interactive \
+            backtail@127.0.0.1 "echo test" 2>&1
+          
+          # Cleanup
+          docker stop backtail-test-kbi
+          docker rm backtail-test-kbi
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+
+      - name: Test unsupported key type rejection (RSA)
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate RSA key pair (should be rejected)
+          ssh-keygen -t rsa -f /tmp/test_rsa_key -N "" -q
+          cp /tmp/test_rsa_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-rsa \
+            -p 2226:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-rsa pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test RSA key authentication should fail
+          ! ssh -i /tmp/test_rsa_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2226 \
+            backtail@127.0.0.1 "echo test" 2>&1
+          
+          # Cleanup
+          docker stop backtail-test-rsa
+          docker rm backtail-test-rsa
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_rsa_key /tmp/test_rsa_key.pub
+
+      - name: Test SSH config permissions
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config
+          
+          # Start container
+          docker run -d --name backtail-test-perms \
+            -v /tmp/test-config:/config \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for container to start
+          sleep 3
+          
+          # Check SSH config file permissions inside container
+          docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || exit 1
+          docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || exit 1
+          
+          # Check config ownership
+          docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || exit 1
+          docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || exit 1
+          
+          # Cleanup
+          docker stop backtail-test-perms
+          docker rm backtail-test-perms
+          rm -rf /tmp/test-config
+
+      - name: Test host key algorithm enforcement
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-hostkey \
+            -p 2227:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-hostkey pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test connection with only ED25519 host key algorithm (should succeed)
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2227 \
+            -o HostKeyAlgorithms=ssh-ed25519 \
+            backtail@127.0.0.1 "echo test" | grep -q "test"
+          
+          # Test connection with RSA host key algorithm (should fail)
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2227 \
+            -o HostKeyAlgorithms=rsa-sha2-256 \
+            backtail@127.0.0.1 "echo test" 2>&1
+          
+          # Cleanup
+          docker stop backtail-test-hostkey
+          docker rm backtail-test-hostkey
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+
+      - name: Test port forwarding rejection
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-forwarding \
+            -p 2228:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-forwarding pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test TCP forwarding should fail
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2228 \
+            -L 8080:localhost:80 \
+            -N backtail@127.0.0.1 2>&1
+          
+          # Test X11 forwarding should fail
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2228 \
+            -X \
+            -N backtail@127.0.0.1 2>&1
+          
+          # Test agent forwarding should fail
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2228 \
+            -A \
+            -N backtail@127.0.0.1 2>&1
+          
+          # Cleanup
+          docker stop backtail-test-forwarding
+          docker rm backtail-test-forwarding
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+
+      - name: Test chroot escape attempts
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-chroot \
+            -p 2229:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-chroot pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test directory traversal attempts via SFTP
+          echo "test content" > /tmp/test_file.txt
+          
+          # Try to navigate to parent directory (should fail)
+          ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2229 \
+            backtail@127.0.0.1 <<EOF
+          cd ../../
+          ls
+          quit
+          EOF
+          
+          # Try to access absolute path (should fail)
+          ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2229 \
+            backtail@127.0.0.1 <<EOF
+          ls /etc
+          quit
+          EOF
+          
+          # Cleanup
+          docker stop backtail-test-chroot
+          docker rm backtail-test-chroot
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub /tmp/test_file.txt
+
+      - name: Test ForceCommand enforcement
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          
+          # Generate SSH key pair for testing
+          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
+          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
+          
+          # Start container
+          docker run -d --name backtail-test-forcecmd \
+            -p 2230:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-forcecmd pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+          
+          # Test arbitrary command execution should fail
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2230 \
+            backtail@127.0.0.1 "whoami" 2>&1
+          
+          # Test shell access should fail
+          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port=2230 \
+            backtail@127.0.0.1 "/bin/sh" 2>&1
+          
+          # Cleanup
+          docker stop backtail-test-forcecmd
+          docker rm backtail-test-forcecmd
+          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
     runs-on: ubuntu-latest
