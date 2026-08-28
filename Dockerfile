@@ -53,6 +53,6 @@ EXPOSE 22
 
 # Healthcheck
 HEALTHCHECK --interval=30s --start-period=5s --timeout=3s --retries=3 \
-  /healthcheck.sh || exit 1
+  CMD /healthcheck.sh || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
