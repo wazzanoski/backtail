@@ -18,9 +18,9 @@ tailscale up
 EXIT_STATUS=${?}
 
 if [ "${EXIT_STATUS}" -eq 0 ]; then
-  log INFO "Connecting to Tailscale successful!"
+  log INFO "Tailscale connected!"
 else
-  log ERROR "Connecting to Tailscale not successful!"
+  log ERROR "Tailscale not connected!"
   if [ -f "${TSD_LOG}" ]; then
     log INFO "Please check the logs:"
     log INFO "======================="

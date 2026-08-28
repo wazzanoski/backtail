@@ -8,6 +8,10 @@ SCRIPT_NAME=$(basename -s '.sh' "${0}")
 export SCRIPT_NAME
 . ./logger.sh
 
+export BANNER_FILE="banner.txt"
+export HOST_KEY_FILE="ssh_host_ed25519_key"
+export SSHD_CONFIG_FILE="sftp_jail.conf"
+
 # Function to manage group
 manage_group() {
   log DEBUG "PGID='${PGID}'"
