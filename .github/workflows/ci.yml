@@ -203,6 +203,53 @@ jobs:
           docker rm backtail-test
           rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub /tmp/test_file.txt
 
+      - name: Test healthcheck functionality
+        run: |
+          # Create test environment
+          mkdir -p /tmp/test-config /tmp/test-backup
+          
+          # Start container in background (Tailscale disabled for testing)
+          docker run -d --name backtail-test-health \
+            -p 2223:22 \
+            -v /tmp/test-config:/config \
+            -v /tmp/test-backup:/data/backtail \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" \
+            -e TAILSCALE_ENABLED=false \
+            backtail:test
+          
+          # Wait for container to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-health pgrep sshd >/dev/null; then
+              echo "Container is ready"
+              break
+            fi
+            echo "Waiting for container... ($i/30)"
+            sleep 2
+          done
+          
+          # Run healthcheck inside container
+          docker exec backtail-test-health /healthcheck.sh
+          HEALTHCHECK_EXIT=$?
+          
+          if [ $HEALTHCHECK_EXIT -eq 0 ]; then
+            echo "Healthcheck passed successfully"
+          else
+            echo "Healthcheck failed"
+            docker logs backtail-test-health
+            exit 1
+          fi
+          
+          # Also test Docker health status
+          sleep 5  # Allow healthcheck to run
+          HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' backtail-test-health)
+          echo "Docker health status: $HEALTH_STATUS"
+          docker inspect --format='{{json .State.Health}}' backtail-test-health
+          
+          # Cleanup
+          docker stop backtail-test-health
+          docker rm backtail-test-health
+          rm -rf /tmp/test-backup /tmp/test-config
+
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
     runs-on: ubuntu-latest

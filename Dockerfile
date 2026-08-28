@@ -43,10 +43,16 @@ COPY "run_tailscale.sh" /
 # Setup entrypoint
 COPY "logger.sh" /
 COPY "entrypoint.sh" /
+COPY "healthcheck.sh" /
 
 # Set permissions for all scripts in a single layer
-RUN chmod 500 "/run_sftp.sh" "/run_tailscale.sh" "/logger.sh" "/entrypoint.sh"
+RUN chmod 500 "/run_sftp.sh" "/run_tailscale.sh" "/logger.sh" "/entrypoint.sh" "/healthcheck.sh"
 
 # Runtime configuration
 EXPOSE 22
+
+# Healthcheck
+HEALTHCHECK --interval=30s --start-period=5s --timeout=3s --retries=3 \
+  /healthcheck.sh || exit 1
+
 ENTRYPOINT ["/entrypoint.sh"]
