@@ -27,7 +27,7 @@ check_group_exists() {
 # Check if user id matches.
 check_user_id_matches() {
   STATUS=0
-  if [ $(id -u "${USER}") = "${PUID}" ]; then
+  if [ "$(id -u "${USER}")" = "${PUID}" ]; then
     STATUS=1
   fi
   echo "user_id_matches:${STATUS}"
@@ -37,7 +37,7 @@ check_user_id_matches() {
 # Check if group id matches.
 check_group_id_matches() {
   STATUS=0
-  if [ $(id -g "${USER}") = "${PGID}" ]; then
+  if [ "$(id -g "${USER}")" = "${PGID}" ]; then
     STATUS=1
   fi
   echo "group_id_matches:${STATUS}"
@@ -115,7 +115,7 @@ check_tailscale_connected() {
   # Check if tailscale command is available and connected
   if command -v tailscale >/dev/null 2>&1; then
     # Check if tailscale is connected
-    if [ $(tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null) = "Running" ]; then
+    if [ "$(tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null)" = "Running" ]; then
       STATUS=0
     fi
   fi
