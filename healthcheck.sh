@@ -6,9 +6,9 @@
 
 # Check if user exists.
 check_user_exists() {
-  STATUS=0
-  if ! id "${USER}" >/dev/null 2>&1; then
-    STATUS=1
+  STATUS=1
+  if id "${USER}" >/dev/null 2>&1; then
+    STATUS=0
   fi
   echo "user_exists:${STATUS}"
   return ${STATUS}
@@ -16,9 +16,9 @@ check_user_exists() {
 
 # Check if group exists.
 check_group_exists() {
-  STATUS=0
-  if ! getent group "${USER}" >/dev/null 2>&1; then
-    STATUS=1
+  STATUS=1
+  if getent group "${USER}" >/dev/null 2>&1; then
+    STATUS=0
   fi
   echo "group_exists:${STATUS}"
   return ${STATUS}
@@ -26,9 +26,9 @@ check_group_exists() {
 
 # Check if user id matches.
 check_user_id_matches() {
-  STATUS=0
+  STATUS=1
   if [ "$(id -u "${USER}")" = "${PUID}" ]; then
-    STATUS=1
+    STATUS=0
   fi
   echo "user_id_matches:${STATUS}"
   return ${STATUS}
@@ -36,9 +36,9 @@ check_user_id_matches() {
 
 # Check if group id matches.
 check_group_id_matches() {
-  STATUS=0
+  STATUS=1
   if [ "$(id -g "${USER}")" = "${PGID}" ]; then
-    STATUS=1
+    STATUS=0
   fi
   echo "group_id_matches:${STATUS}"
   return ${STATUS}
