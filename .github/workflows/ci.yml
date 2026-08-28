@@ -279,11 +279,11 @@ jobs:
           done
           
           # Test password authentication should fail
-          ! sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
+          sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2224 \
             -o PreferredAuthentications=password \
-            backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied"
+            backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied" && exit 1
           
           # Cleanup
           docker stop backtail-test-auth
@@ -319,11 +319,11 @@ jobs:
           done
           
           # Test keyboard-interactive authentication should fail
-          ! ssh -o StrictHostKeyChecking=no \
+          ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2225 \
             -o PreferredAuthentications=keyboard-interactive \
-            backtail@127.0.0.1 "echo test" 2>&1
+            backtail@127.0.0.1 "echo test" 2>&1 && exit 1
           
           # Cleanup
           docker stop backtail-test-kbi
@@ -359,10 +359,10 @@ jobs:
           done
           
           # Test RSA key authentication should fail
-          ! ssh -i /tmp/test_rsa_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_rsa_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2226 \
-            backtail@127.0.0.1 "echo test" 2>&1
+            backtail@127.0.0.1 "echo test" 2>&1 && exit 1
           
           # Cleanup
           docker stop backtail-test-rsa
@@ -433,11 +433,11 @@ jobs:
             backtail@127.0.0.1 "echo test" | grep -q "test"
           
           # Test connection with RSA host key algorithm (should fail)
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2227 \
             -o HostKeyAlgorithms=rsa-sha2-256 \
-            backtail@127.0.0.1 "echo test" 2>&1
+            backtail@127.0.0.1 "echo test" 2>&1 && exit 1
           
           # Cleanup
           docker stop backtail-test-hostkey
@@ -473,25 +473,25 @@ jobs:
           done
           
           # Test TCP forwarding should fail
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2228 \
             -L 8080:localhost:80 \
-            -N backtail@127.0.0.1 2>&1
+            -N backtail@127.0.0.1 2>&1 && exit 1
           
           # Test X11 forwarding should fail
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2228 \
             -X \
-            -N backtail@127.0.0.1 2>&1
+            -N backtail@127.0.0.1 2>&1 && exit 1
           
           # Test agent forwarding should fail
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2228 \
             -A \
-            -N backtail@127.0.0.1 2>&1
+            -N backtail@127.0.0.1 2>&1 && exit 1
           
           # Cleanup
           docker stop backtail-test-forwarding
@@ -530,23 +530,23 @@ jobs:
           echo "test content" > /tmp/test_file.txt
           
           # Try to navigate to parent directory (should fail)
-          ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2229 \
             backtail@127.0.0.1 <<EOF
           cd ../../
           ls
           quit
-          EOF
+          EOF && exit 1
           
           # Try to access absolute path (should fail)
-          ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2229 \
             backtail@127.0.0.1 <<EOF
           ls /etc
           quit
-          EOF
+          EOF && exit 1
           
           # Cleanup
           docker stop backtail-test-chroot
@@ -582,16 +582,16 @@ jobs:
           done
           
           # Test arbitrary command execution should fail
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2230 \
-            backtail@127.0.0.1 "whoami" 2>&1
+            backtail@127.0.0.1 "whoami" 2>&1 && exit 1
           
           # Test shell access should fail
-          ! ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2230 \
-            backtail@127.0.0.1 "/bin/sh" 2>&1
+            backtail@127.0.0.1 "/bin/sh" 2>&1 && exit 1
           
           # Cleanup
           docker stop backtail-test-forcecmd
