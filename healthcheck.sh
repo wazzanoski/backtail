@@ -75,14 +75,14 @@ check_sshd_config_valid() {
   return ${STATUS}
 }
 
-# Check if SSH port is listening.
-check_ssh_port_listening() {
+# Check if SFTP port is listening.
+check_sftp_port_listening() {
   STATUS=1
   # Use /proc/net/tcp to check if port 22 (hex 0016) is in LISTEN state (hex 0A)
   if awk '$4 == "0A" && $2 ~ /:0016$/ {found=1} END {exit !found}' /proc/net/tcp 2>/dev/null; then
     STATUS=0
   fi
-  echo "ssh_port_listening:${STATUS}"
+  echo "sftp_port_listening:${STATUS}"
   return ${STATUS}
 }
 
@@ -107,7 +107,7 @@ check_tailscale_running() {
 check_tailscale_connected() {
   # Only check if Tailscale is enabled
   if [ "${TAILSCALE_ENABLED}" != "true" ]; then
-    echo "tailscale_status:skipped"
+    echo "tailscale_connected:skipped"
     return 0
   fi
 
@@ -115,11 +115,11 @@ check_tailscale_connected() {
   # Check if tailscale command is available and connected
   if command -v tailscale >/dev/null 2>&1; then
     # Check if tailscale is connected
-    if [ tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null = "Running" ]; then
+    if [ $(tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null) = "Running" ]; then
       STATUS=0
     fi
   fi
-  echo "tailscale_status:${STATUS}"
+  echo "tailscale_connected:${STATUS}"
   return ${STATUS}
 }
 
@@ -127,23 +127,29 @@ check_tailscale_connected() {
 main() {
   healthcheck_failed_checks=0
 
-  if ! check_user_group_config; then
+  if ! check_user_exists; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
-
+  if ! check_group_exists; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+  if ! check_user_id_matches; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+  if ! check_group_id_matches; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
   if ! check_ssh_host_key_exists; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
-
   if ! check_sshd_running; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
-
   if ! check_sshd_config_valid; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
 
-  if ! check_ssh_port_listening; then
+  if ! check_sftp_port_listening; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
 
