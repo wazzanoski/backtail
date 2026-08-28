@@ -1,41 +1,50 @@
 #!/bin/sh
 
-# Health check script for backtail container
-# Verifies SSHD process, port listening, configuration, host key, user/group config, and Tailscale processes/status (if enabled)
-# Returns 0 if healthy, 1 if unhealthy
+# Health check script for backtail container.
+# Verifies user/group definition, SSHD process, port listening, configuration, host key, and Tailscale processes/status (if enabled).
+# Returns 0 if all healthy, 1 if any unhealthy.
 
-# Check if SSHD is running
-check_sshd_running() {
-  STATUS=1
-  if pgrep sshd >/dev/null 2>&1; then
-    STATUS=0
+# Check if user exists.
+check_user_exists() {
+  STATUS=0
+  if ! id "${USER}" >/dev/null 2>&1; then
+    STATUS=1
   fi
-  echo "sshd_running:${STATUS}"
+  echo "user_exists:${STATUS}"
   return ${STATUS}
 }
 
-# Check if SSH port is listening
-check_ssh_port_listening() {
-  STATUS=1
-  # Use /proc/net/tcp to check if port 22 (hex 0016) is in LISTEN state (hex 0A)
-  if awk '$4 == "0A" && $2 ~ /:0016$/ {found=1} END {exit !found}' /proc/net/tcp 2>/dev/null; then
-    STATUS=0
+# Check if group exists.
+check_group_exists() {
+  STATUS=0
+  if ! getent group "${USER}" >/dev/null 2>&1; then
+    STATUS=1
   fi
-  echo "ssh_port_listening:${STATUS}"
+  echo "group_exists:${STATUS}"
   return ${STATUS}
 }
 
-# Check SSHD configuration validity
-check_sshd_config_valid() {
-  STATUS=1
-  if sshd -t 2>/dev/null; then
-    STATUS=0
+# Check if user id matches.
+check_user_id_matches() {
+  STATUS=0
+  if [ $(id -u "${USER}") = "${PUID}" ]; then
+    STATUS=1
   fi
-  echo "sshd_config_valid:${STATUS}"
+  echo "user_id_matches:${STATUS}"
   return ${STATUS}
 }
 
-# Check SSH host key exists
+# Check if group id matches.
+check_group_id_matches() {
+  STATUS=0
+  if [ $(id -g "${USER}") = "${PGID}" ]; then
+    STATUS=1
+  fi
+  echo "group_id_matches:${STATUS}"
+  return ${STATUS}
+}
+
+# Check if SSH host key exists.
 check_ssh_host_key_exists() {
   host_key="/etc/ssh/ssh_host_ed25519_key"
   STATUS=1
@@ -46,7 +55,38 @@ check_ssh_host_key_exists() {
   return ${STATUS}
 }
 
-# Check Tailscale running (if enabled)
+# Check if SSHD is running.
+check_sshd_running() {
+  STATUS=1
+  if pgrep sshd >/dev/null 2>&1; then
+    STATUS=0
+  fi
+  echo "sshd_running:${STATUS}"
+  return ${STATUS}
+}
+
+# Check if SSHD configuration is valid.
+check_sshd_config_valid() {
+  STATUS=1
+  if sshd -t 2>/dev/null; then
+    STATUS=0
+  fi
+  echo "sshd_config_valid:${STATUS}"
+  return ${STATUS}
+}
+
+# Check if SSH port is listening.
+check_ssh_port_listening() {
+  STATUS=1
+  # Use /proc/net/tcp to check if port 22 (hex 0016) is in LISTEN state (hex 0A)
+  if awk '$4 == "0A" && $2 ~ /:0016$/ {found=1} END {exit !found}' /proc/net/tcp 2>/dev/null; then
+    STATUS=0
+  fi
+  echo "ssh_port_listening:${STATUS}"
+  return ${STATUS}
+}
+
+# Check if Tailscale is running (if enabled).
 check_tailscale_running() {
   # Only check if Tailscale is enabled
   if [ "${TAILSCALE_ENABLED}" != "true" ]; then
@@ -63,8 +103,8 @@ check_tailscale_running() {
   return ${STATUS}
 }
 
-# Check Tailscale connection status (if enabled)
-check_tailscale_status() {
+# Check if Tailscale connected (if enabled).
+check_tailscale_connected() {
   # Only check if Tailscale is enabled
   if [ "${TAILSCALE_ENABLED}" != "true" ]; then
     echo "tailscale_status:skipped"
@@ -74,8 +114,8 @@ check_tailscale_status() {
   STATUS=1
   # Check if tailscale command is available and connected
   if command -v tailscale >/dev/null 2>&1; then
-    # Check if tailscale is connected (various possible status indicators)
-    if tailscale status 2>/dev/null | grep -qE "(Logged in|Connected|Running)"; then
+    # Check if tailscale is connected
+    if [ tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null = "Running" ]; then
       STATUS=0
     fi
   fi
@@ -83,60 +123,35 @@ check_tailscale_status() {
   return ${STATUS}
 }
 
-# Check user/group configuration
-check_user_group_config() {
-  STATUS=0
-  
-  # Check if backtail user exists
-  if ! id "${USER}" >/dev/null 2>&1; then
-    STATUS=1
-  fi
-
-  # Check if backtail group exists
-  if ! getent group "${USER}" >/dev/null 2>&1; then
-    STATUS=1
-  fi
-
-  echo "user_group_config:${STATUS}"
-  return ${STATUS}
-}
-
-# Main health check function
+# Main health check function.
 main() {
   healthcheck_failed_checks=0
 
-  # Check SSHD is running
-  if ! check_sshd_running; then
-    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
-  fi
-
-  # Check SSH port is listening
-  if ! check_ssh_port_listening; then
-    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
-  fi
-
-  # Check SSHD configuration
-  if ! check_sshd_config_valid; then
-    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
-  fi
-
-  # Check SSH host key
-  if ! check_ssh_host_key_exists; then
-    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
-  fi
-
-  # Check user/group configuration
   if ! check_user_group_config; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
 
-  # Check Tailscale running (if enabled)
+  if ! check_ssh_host_key_exists; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+
+  if ! check_sshd_running; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+
+  if ! check_sshd_config_valid; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+
+  if ! check_ssh_port_listening; then
+    healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
+  fi
+
   if ! check_tailscale_running; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
 
-  # Check Tailscale status (if enabled)
-  if ! check_tailscale_status; then
+  if ! check_tailscale_connected; then
     healthcheck_failed_checks=$((healthcheck_failed_checks + 1))
   fi
 
