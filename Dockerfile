@@ -37,7 +37,7 @@ COPY "sftp_jail.conf" "/etc/ssh/sshd_config.d/"
 RUN chmod 400 "/etc/ssh/sshd_config.d/sftp_jail.conf"
 COPY "run_sftp.sh" /
 COPY "banner.txt" "/etc/ssh/"
-RUN chmod 400 "/etc/ssh/banner.txt"
+RUN chmod 444 "/etc/ssh/banner.txt"
 
 # Setup tailscale
 COPY "run_tailscale.sh" /
