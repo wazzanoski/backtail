@@ -152,6 +152,7 @@ jobs:
 
           docker stop backtail-test-banner
           docker rm backtail-test-banner
+          ls -la /tmp/test-config/
           test -f /tmp/test-config/banner.txt || exit 1
           rm -rf /tmp/test-config
       
