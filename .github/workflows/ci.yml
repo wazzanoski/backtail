@@ -530,29 +530,23 @@ jobs:
           echo "test content" > /tmp/test_file.txt
           
           # Try to navigate to parent directory (should fail)
-          if ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2229 \
             backtail@127.0.0.1 <<EOF
           cd ../../
           ls
           quit
-          EOF
-          then
-            exit 1
-          fi
+          EOF && exit 1
           
           # Try to access absolute path (should fail)
-          if ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2229 \
             backtail@127.0.0.1 <<EOF
           ls /etc
           quit
-          EOF
-          then
-            exit 1
-          fi
+          EOF && exit 1
           
           # Cleanup
           docker stop backtail-test-chroot
