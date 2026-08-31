@@ -283,7 +283,7 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -o Port=2224 \
             -o PreferredAuthentications=password \
-            backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied" && exit 1
+            backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied" || exit 1
           
           # Cleanup
           docker stop backtail-test-auth
