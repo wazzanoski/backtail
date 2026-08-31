@@ -110,8 +110,17 @@ jobs:
             -e PUID="$(id -u)" -e PGID="$(id -g)" \
             -e TAILSCALE_ENABLED=false \
             backtail:test
-          # Wait for SSHD to start and generate keys
-          sleep 3
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+
           ls -la /tmp/test-config/
           docker logs backtail-test-keys
           docker stop backtail-test-keys
@@ -130,8 +139,17 @@ jobs:
             -e PUID="$(id -u)" -e PGID="$(id -g)" \
             -e TAILSCALE_ENABLED=false \
             backtail:test
-          # Wait for SSHD to start and create banner
-          sleep 3
+          
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
+
           docker stop backtail-test-banner
           docker rm backtail-test-banner
           test -f /tmp/test-config/banner.txt || exit 1
