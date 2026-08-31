@@ -392,11 +392,15 @@ jobs:
           done
           
           # Check SSH config file permissions inside container
+          echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
           docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          echo "/etc/ssh/ssh_host_ed25519_key"
           docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
 
           # Check config ownership
+          echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
           docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          echo "/etc/ssh/ssh_host_ed25519_key ownership"
           docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
           
           # Cleanup
