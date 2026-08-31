@@ -381,8 +381,15 @@ jobs:
             -e TAILSCALE_ENABLED=false \
             backtail:test
           
-          # Wait for container to start
-          sleep 3
+          # Wait for SSH to be ready
+          for i in $(seq 1 30); do
+            if docker exec backtail-test-perms pgrep sshd >/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 2
+          done
           
           # Check SSH config file permissions inside container
           docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || exit 1
