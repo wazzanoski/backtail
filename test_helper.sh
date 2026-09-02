@@ -46,6 +46,7 @@ setup_sftp_test() {
 # Teardown test environment
 # Args: $1 = additional_files (optional)
 teardown_sftp_test() {
+  echo "Teardown"
   local additional_files="$1"
   
   # Stop and remove container
@@ -60,6 +61,8 @@ teardown_sftp_test() {
     rm -rf "$additional_files"
   fi
 }
+
+trap teardown_sftp_test EXIT
 
 # Auto-call setup when script is sourced (can be overridden by calling setup_sftp_test again with custom parameters)
 setup_sftp_test
