@@ -130,6 +130,23 @@ jobs:
           docker run --rm -e UMASK=002 -e DRY_RUN=true \
             backtail:test sh -c "umask | grep -q 002" || exit 1
 
+      - name: Test SSH config permissions
+        run: |
+          source /tmp/test_helper.sh
+          
+          # Check SSH config file permissions inside container
+          echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          echo "/etc/ssh/ssh_host_ed25519_key"
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+
+          # Check config ownership
+          echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          echo "/etc/ssh/ssh_host_ed25519_key ownership"
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+
+
       - name: Test SFTP file transfer
         run: |
           source /tmp/test_helper.sh
@@ -170,7 +187,7 @@ jobs:
           echo "Docker health status: $HEALTH_STATUS"
           docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
 
-      - name: Test password authentication rejection
+      - name: "[Security] Test password authentication rejection"
         run: |
           source /tmp/test_helper.sh
           
@@ -181,7 +198,7 @@ jobs:
             -o PreferredAuthentications=password \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
 
-      - name: Test keyboard-interactive authentication rejection
+      - name: "[Security] Test keyboard-interactive authentication rejection"
         run: |
           source /tmp/test_helper.sh
           
@@ -192,7 +209,7 @@ jobs:
             -o PreferredAuthentications=keyboard-interactive \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
 
-      - name: Test unsupported key type rejection (RSA)
+      - name: "[Security] Test unsupported key type rejection (RSA)"
         run: |
           source /tmp/test_helper.sh
           
@@ -206,23 +223,7 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
 
-      - name: Test SSH config permissions
-        run: |
-          source /tmp/test_helper.sh
-          
-          # Check SSH config file permissions inside container
-          echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
-          echo "/etc/ssh/ssh_host_ed25519_key"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
-
-          # Check config ownership
-          echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
-          echo "/etc/ssh/ssh_host_ed25519_key ownership"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
-
-      - name: Test invalid host key algorithm
+      - name: "[Security] Test invalid host key algorithm"
         run: |
           source /tmp/test_helper.sh
           
@@ -240,7 +241,7 @@ jobs:
           fi
 
 
-      - name: Test valid host key algorithm
+      - name: "[Security] Test valid host key algorithm"
         run: |
           source /tmp/test_helper.sh
           
@@ -257,7 +258,7 @@ jobs:
             exit 1
           fi
 
-      - name: Test port forwarding rejection
+      - name: "[Security] Test port forwarding rejection"
         run: |
           source /tmp/test_helper.sh
           
@@ -282,7 +283,7 @@ jobs:
             -A \
             -N backtail@127.0.0.1 2>&1 && exit 1
 
-      - name: Test chroot escape attempts
+      - name: "[Security] Test chroot escape attempts"
         run: |
           source /tmp/test_helper.sh
           
@@ -314,7 +315,7 @@ jobs:
             exit 1
           fi
 
-      - name: Test ForceCommand enforcement
+      - name: "[Security] Test ForceCommand enforcement"
         run: |
           source /tmp/test_helper.sh
           
