@@ -50,6 +50,11 @@ jobs:
       - name: Build Docker image
         run: docker build -t backtail:test .
       
+      - name: Setup test helper
+        run: |
+          chmod +x ./test_helper.sh
+          cp ./test_helper.sh /tmp/test_helper.sh
+      
       - name: Test dry-run mode
         run: |
           docker run --rm -e DRY_RUN=true \
@@ -100,61 +105,15 @@ jobs:
 
       - name: Test SSH host key generation
         run: |
-          whoami
-          id -u
-          id -g
-          mkdir -p /tmp/test-config
-          ls -la /tmp/test-config/
-          docker run -d --name backtail-test-keys \
-            -v /tmp/test-config:/config \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-keys pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
+          teardown_sftp_test
+          test -f "$SFTP_TEST_CONFIG_DIR/ssh_host_ed25519_key" || exit 1
 
-          ls -la /tmp/test-config/
-          docker logs backtail-test-keys
-          docker stop backtail-test-keys
-          docker rm backtail-test-keys
-          ls -la /tmp/test-config/
-          test -f /tmp/test-config/ssh_host_ed25519_key || exit 1
-
-          ls -la /tmp/test-config/
-          rm -rf /tmp/test-config
-      
       - name: Test banner file creation
         run: |
-          mkdir -p /tmp/test-config
-          docker run -d --name backtail-test-banner \
-            -v /tmp/test-config:/config \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-banner pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
-
-          docker stop backtail-test-banner
-          docker rm backtail-test-banner
-          ls -la /tmp/test-config/
-          test -f /tmp/test-config/banner.txt || exit 1
-          rm -rf /tmp/test-config
+          source /tmp/test_helper.sh
+          teardown_sftp_test
+          test -f "$SFTP_TEST_CONFIG_DIR/banner.txt" || exit 1
       
       - name: Test user permissions
         run: |
@@ -175,290 +134,122 @@ jobs:
 
       - name: Test SFTP file transfer
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          
-          # Setup authorized_keys
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container in background (Tailscale disabled for testing)
-          docker run -d --name backtail-test \
-            -p 2222:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
-          sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2222 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
           quit
           EOF
           
-          # Verify file was transferred
-          docker exec backtail-test test -f /data/backtail/test_file.txt || exit 1
+          # Verify file was transferred (check in the mounted backup directory)
+          test -f "$SFTP_TEST_BACKUP_DIR/test_file.txt" || exit 1
           
-          # Cleanup
-          docker stop backtail-test
-          docker rm backtail-test
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub /tmp/test_file.txt
+          # Teardown
+          teardown_sftp_test "/tmp/test_file.txt"
 
       - name: Test healthcheck functionality
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup
-          
-          # Start container in background (Tailscale disabled for testing)
-          docker run -d --name backtail-test-health \
-            -p 2223:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for container to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-health pgrep sshd >/dev/null; then
-              echo "Container is ready"
-              break
-            fi
-            echo "Waiting for container... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Run healthcheck inside container
-          docker exec backtail-test-health /healthcheck.sh
+          docker exec "$SFTP_TEST_CONTAINER_NAME" /healthcheck.sh
           HEALTHCHECK_EXIT=$?
           
           if [ $HEALTHCHECK_EXIT -eq 0 ]; then
             echo "Healthcheck passed successfully"
           else
             echo "Healthcheck failed"
-            docker logs backtail-test-health
+            docker logs "$SFTP_TEST_CONTAINER_NAME"
             exit 1
           fi
           
           # Also test Docker health status
           sleep 5  # Allow healthcheck to run
-          HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' backtail-test-health)
+          HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$SFTP_TEST_CONTAINER_NAME")
           echo "Docker health status: $HEALTH_STATUS"
-          docker inspect --format='{{json .State.Health}}' backtail-test-health
+          docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
           
-          # Cleanup
-          docker stop backtail-test-health
-          docker rm backtail-test-health
-          rm -rf /tmp/test-backup /tmp/test-config
+          # Teardown
+          teardown_sftp_test
 
       - name: Test password authentication rejection
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-auth \
-            -p 2224:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-auth pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test password authentication should fail
           sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2224 \
+            -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=password \
             backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied" || exit 1
           
-          # Cleanup
-          docker stop backtail-test-auth
-          docker rm backtail-test-auth
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test keyboard-interactive authentication rejection
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-kbi \
-            -p 2225:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-kbi pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test keyboard-interactive authentication should fail
           ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2225 \
+            -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=keyboard-interactive \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1
           
-          # Cleanup
-          docker stop backtail-test-kbi
-          docker rm backtail-test-kbi
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test unsupported key type rejection (RSA)
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
+          source /tmp/test_helper.sh
           
-          # Generate RSA key pair (should be rejected)
-          ssh-keygen -t rsa -f /tmp/test_rsa_key -N "" -q
-          cp /tmp/test_rsa_key.pub /tmp/test-backup/.ssh/authorized_keys
+          # First teardown the auto-setup, then setup with RSA key
+          teardown_sftp_test
+          setup_sftp_test "rsa"
           
-          # Start container
-          docker run -d --name backtail-test-rsa \
-            -p 2226:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-rsa pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
-          
-          # Test RSA key authentication should fail
-          ssh -i /tmp/test_rsa_key -o StrictHostKeyChecking=no \
+          # Test RSA key authentication should fail (using the generated RSA key)
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2226 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1
           
-          # Cleanup
-          docker stop backtail-test-rsa
-          docker rm backtail-test-rsa
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_rsa_key /tmp/test_rsa_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test SSH config permissions
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config
-          
-          # Start container
-          docker run -d --name backtail-test-perms \
-            -v /tmp/test-config:/config \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-perms pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Check SSH config file permissions inside container
           echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
-          docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
           echo "/etc/ssh/ssh_host_ed25519_key"
-          docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec backtail-test-perms sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
 
           # Check config ownership
           echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
-          docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
           echo "/etc/ssh/ssh_host_ed25519_key ownership"
-          docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec backtail-test-perms sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
           
-          # Cleanup
-          docker stop backtail-test-perms
-          docker rm backtail-test-perms
-          rm -rf /tmp/test-config
+          # Teardown
+          teardown_sftp_test
 
-      - name: Test invalid host key algorithm (should fail)
+      - name: Test invalid host key algorithm
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-hostkey \
-            -p 2227:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-hostkey pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test connection with RSA host key algorithm (should fail)
-          if sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2227 \
+            -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=rsa-sha2-256 \
             backtail@127.0.0.1 <<EOF
           ls
@@ -468,43 +259,17 @@ jobs:
             exit 1
           fi
           
-          # Cleanup
-          docker stop backtail-test-hostkey
-          docker rm backtail-test-hostkey
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test valid host key algorithm
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-hostkey \
-            -p 2227:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-hostkey pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test connection with only ED25519 host key algorithm (should succeed)
-          if ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if ! sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2227 \
+            -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=ssh-ed25519 \
             backtail@127.0.0.1 <<EOF
           ls
@@ -514,100 +279,48 @@ jobs:
             exit 1
           fi
           
-          # Cleanup
-          docker stop backtail-test-hostkey
-          docker rm backtail-test-hostkey
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test port forwarding rejection
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-forwarding \
-            -p 2228:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-forwarding pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test TCP forwarding should fail
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2228 \
+            -o Port="$SFTP_TEST_PORT" \
             -L 8080:localhost:80 \
             -N backtail@127.0.0.1 2>&1 && exit 1
           
           # Test X11 forwarding should fail
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2228 \
+            -o Port="$SFTP_TEST_PORT" \
             -X \
             -N backtail@127.0.0.1 2>&1 && exit 1
           
           # Test agent forwarding should fail
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2228 \
+            -o Port="$SFTP_TEST_PORT" \
             -A \
             -N backtail@127.0.0.1 2>&1 && exit 1
           
-          # Cleanup
-          docker stop backtail-test-forwarding
-          docker rm backtail-test-forwarding
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
       - name: Test chroot escape attempts
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-chroot \
-            -p 2229:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-chroot pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test directory traversal attempts via SFTP
           echo "test content" > /tmp/test_file.txt
           
           # Try to navigate to parent directory (should fail)
-          if sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2229 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           cd ../../
           ls
@@ -618,9 +331,9 @@ jobs:
           fi
           
           # Try to access absolute path (should fail)
-          if sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2229 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           ls /etc
           quit
@@ -629,55 +342,27 @@ jobs:
             exit 1
           fi
           
-          # Cleanup
-          docker stop backtail-test-chroot
-          docker rm backtail-test-chroot
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub /tmp/test_file.txt
+          # Teardown
+          teardown_sftp_test "/tmp/test_file.txt"
 
       - name: Test ForceCommand enforcement
         run: |
-          # Create test environment
-          mkdir -p /tmp/test-config /tmp/test-backup /tmp/test-backup/.ssh
-          
-          # Generate SSH key pair for testing
-          ssh-keygen -t ed25519 -f /tmp/test_key -N "" -q
-          cp /tmp/test_key.pub /tmp/test-backup/.ssh/authorized_keys
-          
-          # Start container
-          docker run -d --name backtail-test-forcecmd \
-            -p 2230:22 \
-            -v /tmp/test-config:/config \
-            -v /tmp/test-backup:/data/backtail \
-            -e PUID="$(id -u)" -e PGID="$(id -g)" \
-            -e TAILSCALE_ENABLED=false \
-            backtail:test
-          
-          # Wait for SSH to be ready
-          for i in $(seq 1 30); do
-            if docker exec backtail-test-forcecmd pgrep sshd >/dev/null; then
-              echo "SSH is ready"
-              break
-            fi
-            echo "Waiting for SSH... ($i/30)"
-            sleep 2
-          done
+          source /tmp/test_helper.sh
           
           # Test arbitrary command execution should fail
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2230 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "whoami" 2>&1 && exit 1
           
           # Test shell access should fail
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port=2230 \
+            -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "/bin/sh" 2>&1 && exit 1
           
-          # Cleanup
-          docker stop backtail-test-forcecmd
-          docker rm backtail-test-forcecmd
-          rm -rf /tmp/test-backup /tmp/test-config /tmp/test_key /tmp/test_key.pub
+          # Teardown
+          teardown_sftp_test
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
