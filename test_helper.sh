@@ -63,7 +63,7 @@ teardown_sftp_test() {
   
   # Remove additional files if specified
   if [ -n "$additional_files" ]; then
-    rm -rf $additional_files
+    rm -rf "$additional_files"
   fi
 }
 
