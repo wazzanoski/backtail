@@ -456,11 +456,17 @@ jobs:
           done
           
           # Test connection with RSA host key algorithm (should fail)
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2227 \
             -o HostKeyAlgorithms=rsa-sha2-256 \
-            backtail@127.0.0.1 "echo test" 2>&1 && exit 1
+            backtail@127.0.0.1 <<EOF
+          ls
+          quit
+          EOF
+          then
+            exit 1
+          fi
           
           # Cleanup
           docker stop backtail-test-hostkey
@@ -496,11 +502,17 @@ jobs:
           done
           
           # Test connection with only ED25519 host key algorithm (should succeed)
-          ssh -i /tmp/test_key -o StrictHostKeyChecking=no \
+          if ! sftp -i /tmp/test_key -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port=2227 \
             -o HostKeyAlgorithms=ssh-ed25519 \
-            backtail@127.0.0.1 "echo test" | grep -q "test"
+            backtail@127.0.0.1 <<EOF
+          ls
+          quit
+          EOF
+          then
+            exit 1
+          fi
           
           # Cleanup
           docker stop backtail-test-hostkey
