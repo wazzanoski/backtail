@@ -112,7 +112,6 @@ jobs:
         run: |
           source /tmp/test_helper.sh
           test -f "$SFTP_TEST_CONFIG_DIR/banner.txt" || exit 1
-          teardown_sftp_test
       
       - name: Test user permissions
         run: |
