@@ -5,7 +5,7 @@
 export SFTP_TEST_PORT="2222"
 export SFTP_TEST_CONTAINER_NAME="backtail-test"
 export SFTP_TEST_KEY_NAME="test_key"
-export SFTP_TEST_KEY_PATH="/tmp/test_key"
+export SFTP_TEST_KEY_PATH="/tmp/${SFTP_TEST_KEY_NAME}"
 export SFTP_TEST_CONFIG_DIR="/tmp/test-config"
 export SFTP_TEST_BACKUP_DIR="/tmp/test-backup"
 
@@ -14,20 +14,14 @@ export SFTP_TEST_BACKUP_DIR="/tmp/test-backup"
 setup_sftp_test() {
   local key_type="${1:-ed25519}"
   
-  # Always use the default key name
-  local key_name="${SFTP_TEST_DEFAULT_KEY_NAME}"
-  
-  # Update the key path variable for the current test
-  export SFTP_TEST_KEY_PATH="/tmp/${key_name}"
-  
   # Create test environment
   mkdir -p "$SFTP_TEST_CONFIG_DIR" "$SFTP_TEST_BACKUP_DIR" "$SFTP_TEST_BACKUP_DIR/.ssh"
   
   # Generate SSH key pair for testing
-  ssh-keygen -t "$key_type" -f "/tmp/${key_name}" -N "" -q
+  ssh-keygen -t "$key_type" -f "$SFTP_TEST_KEY_PATH" -N "" -q
   
   # Setup authorized_keys
-  cp "/tmp/${key_name}.pub" "$SFTP_TEST_BACKUP_DIR/.ssh/authorized_keys"
+  cp "${SFTP_TEST_KEY_PATH}.pub" "$SFTP_TEST_BACKUP_DIR/.ssh/authorized_keys"
   
   # Start container in background (Tailscale disabled for testing)
   docker run -d --name "$SFTP_TEST_CONTAINER_NAME" \
@@ -59,7 +53,7 @@ teardown_sftp_test() {
   docker rm "$SFTP_TEST_CONTAINER_NAME"
   
   # Remove test files (always use default key name)
-  rm -rf "$SFTP_TEST_BACKUP_DIR" "$SFTP_TEST_CONFIG_DIR" "/tmp/${SFTP_TEST_DEFAULT_KEY_NAME}" "/tmp/${SFTP_TEST_DEFAULT_KEY_NAME}.pub"
+  rm -rf "$SFTP_TEST_BACKUP_DIR" "$SFTP_TEST_CONFIG_DIR" "${SFTP_TEST_KEY_PATH}" "${SFTP_TEST_KEY_PATH}.pub"
   
   # Remove additional files if specified
   if [ -n "$additional_files" ]; then
