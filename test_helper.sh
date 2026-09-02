@@ -30,7 +30,7 @@ setup_sftp_test() {
     -v "$SFTP_TEST_BACKUP_DIR:/data/backtail" \
     -e PUID="$(id -u)" -e PGID="$(id -g)" \
     -e TAILSCALE_ENABLED=false \
-    backtail:test
+    backtail:test > /dev/null
   
   # Wait for SSH to be ready
   for i in $(seq 1 30); do
