@@ -44,10 +44,8 @@ setup_sftp_test() {
 }
 
 # Teardown test environment
-# Args: $1 = additional_files (optional)
 teardown_sftp_test() {
   echo "Teardown"
-  local additional_files="$1"
   
   # Stop and remove container
   docker stop "$SFTP_TEST_CONTAINER_NAME"
@@ -56,10 +54,8 @@ teardown_sftp_test() {
   # Remove test files (always use default key name)
   rm -rf "$SFTP_TEST_BACKUP_DIR" "$SFTP_TEST_CONFIG_DIR" "${SFTP_TEST_KEY_PATH}" "${SFTP_TEST_KEY_PATH}.pub"
   
-  # Remove additional files if specified
-  if [ -n "$additional_files" ]; then
-    rm -rf "$additional_files"
-  fi
+  # Remove any temporary test files
+  rm -rf "/tmp/test*.txt"
 }
 
 trap teardown_sftp_test EXIT

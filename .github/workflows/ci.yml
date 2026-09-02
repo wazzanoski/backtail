@@ -147,9 +147,6 @@ jobs:
           
           # Verify file was transferred (check in the mounted backup directory)
           test -f "$SFTP_TEST_BACKUP_DIR/test_file.txt" || exit 1
-          
-          # Teardown
-          teardown_sftp_test "/tmp/test_file.txt"
 
       - name: Test healthcheck functionality
         run: |
@@ -172,9 +169,6 @@ jobs:
           HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$SFTP_TEST_CONTAINER_NAME")
           echo "Docker health status: $HEALTH_STATUS"
           docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test password authentication rejection
         run: |
@@ -186,9 +180,6 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=password \
             backtail@127.0.0.1 "echo test" 2>&1 | grep -q "Permission denied" || exit 1
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test keyboard-interactive authentication rejection
         run: |
@@ -200,9 +191,6 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=keyboard-interactive \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test unsupported key type rejection (RSA)
         run: |
@@ -217,9 +205,6 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "echo test" 2>&1 && exit 1
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test SSH config permissions
         run: |
@@ -236,9 +221,6 @@ jobs:
           docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
           echo "/etc/ssh/ssh_host_ed25519_key ownership"
           docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test invalid host key algorithm
         run: |
@@ -256,9 +238,7 @@ jobs:
           then
             exit 1
           fi
-          
-          # Teardown
-          teardown_sftp_test
+
 
       - name: Test valid host key algorithm
         run: |
@@ -276,9 +256,6 @@ jobs:
           then
             exit 1
           fi
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test port forwarding rejection
         run: |
@@ -304,9 +281,6 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             -A \
             -N backtail@127.0.0.1 2>&1 && exit 1
-          
-          # Teardown
-          teardown_sftp_test
 
       - name: Test chroot escape attempts
         run: |
@@ -339,9 +313,6 @@ jobs:
           then
             exit 1
           fi
-          
-          # Teardown
-          teardown_sftp_test "/tmp/test_file.txt"
 
       - name: Test ForceCommand enforcement
         run: |
@@ -358,9 +329,6 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "/bin/sh" 2>&1 && exit 1
-          
-          # Teardown
-          teardown_sftp_test
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
