@@ -262,21 +262,21 @@ jobs:
         run: |
           source /tmp/test_helper.sh
           
-          # Test TCP forwarding should fail
+          echo "Test TCP forwarding should fail"
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -L 8080:localhost:80 \
             -N backtail@127.0.0.1 2>&1 && exit 1
           
-          # Test X11 forwarding should fail
+          echo "Test X11 forwarding should fail"
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -X \
             -N backtail@127.0.0.1 2>&1 && exit 1
           
-          # Test agent forwarding should fail
+          echo "Test agent forwarding should fail"
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
