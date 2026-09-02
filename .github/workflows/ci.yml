@@ -106,7 +106,8 @@ jobs:
       - name: Test SSH host key generation
         run: |
           source /tmp/test_helper.sh
-          RESULT=$(test -f "${SFTP_TEST_CONFIG_DIR}/ssh_host_ed25519_key")
+          test -f "${SFTP_TEST_CONFIG_DIR}/ssh_host_ed25519_key"
+          RESULT=${?}
           teardown_sftp_test
           exit "${RESULT}"
 
