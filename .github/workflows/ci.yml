@@ -312,7 +312,7 @@ jobs:
           ls
           quit
           EOF
-          )
+          2>&1)
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "backtail"; then
             echo "OK: User remained in chroot after cd ../../"
@@ -329,7 +329,7 @@ jobs:
           ls /etc
           quit
           EOF
-          )
+          2>&1)
           echo "Raw output:"
           echo "$OUTPUT"
           echo "Checking for 'not found' pattern..."
@@ -349,7 +349,7 @@ jobs:
           ls ../../../etc
           quit
           EOF
-          )
+          2>&1)
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "not found"; then
             echo "OK: System file access via relative path was blocked"
