@@ -64,11 +64,9 @@ jobs:
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
-          whoami
-          quit
-          EOF
-          
+            backtail@127.0.0.1 "whoami"
+          echo "$?"
+          echo "HERE!!!"
           if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
             echo "OK: Command execution was properly rejected"
           else
@@ -81,10 +79,7 @@ jobs:
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
-          /bin/sh
-          quit
-          EOF
+            backtail@127.0.0.1 "/bin/sh"
           
           if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
             echo "OK: Shell access was properly rejected"
