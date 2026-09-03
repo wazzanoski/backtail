@@ -307,12 +307,12 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
+            backtail@127.0.0.1 2>&1 <<EOF
           cd ../../
           ls
           quit
           EOF
-          2>&1)
+          )
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "backtail"; then
             echo "OK: User remained in chroot after cd ../../"
@@ -325,11 +325,11 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
+            backtail@127.0.0.1 2>&1 <<EOF
           ls /etc
           quit
           EOF
-          2>&1)
+          )
           echo "Raw output:"
           echo "$OUTPUT"
           echo "Checking for 'not found' pattern..."
@@ -345,11 +345,11 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
+            backtail@127.0.0.1 2>&1 <<EOF
           ls ../../../etc
           quit
           EOF
-          2>&1)
+          )
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "not found"; then
             echo "OK: System file access via relative path was blocked"
