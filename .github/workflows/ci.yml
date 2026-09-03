@@ -304,7 +304,7 @@ jobs:
           
           # Try to navigate to parent directory - should stay in chroot
           # The command should succeed but user should remain contained
-          if ! sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
@@ -312,33 +312,45 @@ jobs:
           ls
           quit
           EOF
-          then
-            echo "ERROR: Basic SFTP navigation failed"
+          )
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "backtail"; then
+            echo "OK: User remained in chroot after cd ../../"
+          else
+            echo "ERROR: User escaped chroot or navigation failed"
             exit 1
           fi
           
           # Try to access absolute path outside chroot (should fail)
-          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           ls /etc
           quit
           EOF
-          then
+          )
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "not found"; then
+            echo "OK: Absolute path access outside chroot was blocked"
+          else
             echo "ERROR: Absolute path access outside chroot succeeded"
             exit 1
           fi
           
           # Try to access system files via relative path (should fail)
-          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           ls ../../../etc
           quit
           EOF
-          then
+          )
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "not found"; then
+            echo "OK: System file access via relative path was blocked"
+          else
             echo "ERROR: System file access via relative path succeeded"
             exit 1
           fi
