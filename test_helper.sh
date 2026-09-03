@@ -66,6 +66,10 @@ capture() {
 
     # Clean up temporary files
     rm -f "$out_tmp" "$err_tmp"
+
+    echo "CAPTURE_CODE=${CAPTURE_CODE}"
+    echo "CAPTURE_OUT=${CAPTURE_OUT}"
+    echo "CAPTURE_ERR=${CAPTURE_ERR}"
 }
 
 # Teardown test environment

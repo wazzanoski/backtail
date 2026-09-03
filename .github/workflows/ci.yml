@@ -55,6 +55,46 @@ jobs:
           chmod +x ./test_helper.sh
           cp ./test_helper.sh /tmp/test_helper.sh
       
+      - name: "[Security] Test ForceCommand enforcement"
+        run: |
+          source /tmp/test_helper.sh
+          
+          # Test arbitrary command execution should fail
+          echo "Testing that 'whoami' command is rejected..."
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
+            backtail@127.0.0.1 <<EOF
+          whoami
+          quit
+          EOF
+          
+          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
+            echo "OK: Command execution was properly rejected"
+          else
+            echo "ERROR: Command execution was not rejected as expected"
+            exit 1
+          fi
+          
+          # Test shell access should fail
+          echo "Testing that shell access is rejected..."
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
+            backtail@127.0.0.1 <<EOF
+          /bin/sh
+          quit
+          EOF
+          
+          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
+            echo "OK: Shell access was properly rejected"
+          else
+            echo "ERROR: Shell access was not rejected as expected"
+            exit 1
+          fi
+
       - name: Test dry-run mode
         run: |
           docker run --rm -e DRY_RUN=true \
@@ -358,45 +398,7 @@ jobs:
             exit 1
           fi
 
-      - name: "[Security] Test ForceCommand enforcement"
-        run: |
-          source /tmp/test_helper.sh
-          
-          # Test arbitrary command execution should fail
-          echo "Testing that 'whoami' command is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
-            backtail@127.0.0.1 "whoami" 2>&1
-          
-          echo "CAPTURE_CODE=${CAPTURE_CODE}"
-          echo "CAPTURE_OUT=${CAPTURE_OUT}"
-          echo "CAPTURE_ERR=${CAPTURE_ERR}"
-          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
-            echo "OK: Command execution was properly rejected"
-          else
-            echo "ERROR: Command execution was not rejected as expected"
-            exit 1
-          fi
-          
-          # Test shell access should fail
-          echo "Testing that shell access is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
-            backtail@127.0.0.1 "/bin/sh" 2>&1
-          
-          echo "CAPTURE_CODE=${CAPTURE_CODE}"
-          echo "CAPTURE_OUT=${CAPTURE_OUT}"
-          echo "CAPTURE_ERR=${CAPTURE_ERR}"
-          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
-            echo "OK: Shell access was properly rejected"
-          else
-            echo "ERROR: Shell access was not rejected as expected"
-            exit 1
-          fi
+
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
