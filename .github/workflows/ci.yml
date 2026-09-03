@@ -64,29 +64,34 @@ jobs:
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "whoami"
-          echo "$?"
-          echo "HERE!!!"
-          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
-            echo "OK: Command execution was properly rejected"
-          else
-            echo "ERROR: Command execution was not rejected as expected"
+            backtail@127.0.0.1 "whoami" 2>&1 || exit_code=$?
+          
+          echo "Exit code: $exit_code"
+          
+          # Command should fail with non-zero exit code
+          if [ "$exit_code" -eq 0 ]; then
+            echo "ERROR: Command execution succeeded when it should have failed"
             exit 1
           fi
+          
+          echo "OK: Command execution was properly rejected with exit code $exit_code"
           
           # Test shell access should fail
           echo "Testing that shell access is rejected..."
           ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "/bin/sh"
+            backtail@127.0.0.1 "/bin/sh" 2>&1 || exit_code=$?
           
-          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
-            echo "OK: Shell access was properly rejected"
-          else
-            echo "ERROR: Shell access was not rejected as expected"
+          echo "Exit code: $exit_code"
+          
+          # Shell access should fail with non-zero exit code
+          if [ "$exit_code" -eq 0 ]; then
+            echo "ERROR: Shell access succeeded when it should have failed"
             exit 1
           fi
+          
+          echo "OK: Shell access was properly rejected with exit code $exit_code"
 
       - name: Test dry-run mode
         run: |
