@@ -54,17 +54,17 @@ capture() {
     local err_tmp
     err_tmp=$(mktemp)
 
+    # Expose the data to global variables
+    export CAPTURE_CODE
+    export CAPTURE_OUT
+    export CAPTURE_ERR
+
     set +e
     # Execute the passed command arguments, redirecting streams
     "$@" >"$out_tmp" 2>"$err_tmp"
-    set -e
-
-    # Expose the data to global variables
-    export CAPTURE_CODE
     CAPTURE_CODE=$?
-    export CAPTURE_OUT
+    set -e
     CAPTURE_OUT=$(cat "$out_tmp")
-    export CAPTURE_ERR
     CAPTURE_ERR=$(cat "$err_tmp")
 
     # Clean up temporary files
