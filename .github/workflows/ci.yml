@@ -156,7 +156,7 @@ jobs:
           sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 <<EOF
+            -s backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
           quit
@@ -232,7 +232,7 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=rsa-sha2-256 \
-            backtail@127.0.0.1 <<EOF
+            -s backtail@127.0.0.1 <<EOF
           ls
           quit
           EOF
@@ -250,7 +250,7 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=ssh-ed25519 \
-            backtail@127.0.0.1 <<EOF
+            -s backtail@127.0.0.1 <<EOF
           ls
           quit
           EOF
@@ -307,7 +307,7 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            -s backtail@127.0.0.1 2>&1 <<EOF
           cd ../../
           ls
           quit
@@ -325,7 +325,7 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            -s backtail@127.0.0.1 2>&1 <<EOF
           ls /etc
           quit
           EOF
@@ -345,7 +345,7 @@ jobs:
           OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            -s backtail@127.0.0.1 2>&1 <<EOF
           ls ../../../etc
           quit
           EOF
@@ -363,16 +363,38 @@ jobs:
           source /tmp/test_helper.sh
           
           # Test arbitrary command execution should fail
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          echo "Testing that 'whoami' command is rejected..."
+          OUTPUT=$(ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "whoami" 2>&1 && exit 1
+            -o ConnectTimeout=5 \
+            backtail@127.0.0.1 "whoami" 2>&1)
+          RETURN=$?
+          echo "OUTPUT=${OUTPUT}"
+          echo "RETURN=${RETURN}"
+          if echo "$OUTPUT" | grep -q "This service allows sftp connections only"; then
+            echo "OK: Command execution was properly rejected"
+          else
+            echo "ERROR: Command execution was not rejected as expected"
+            exit 1
+          fi
           
           # Test shell access should fail
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          echo "Testing that shell access is rejected..."
+          OUTPUT=$(ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "/bin/sh" 2>&1 && exit 1
+            -o ConnectTimeout=5 \
+            backtail@127.0.0.1 "/bin/sh" 2>&1)
+          RETURN=$?
+          echo "OUTPUT=${OUTPUT}"
+          echo "RETURN=${RETURN}"
+          if echo "$OUTPUT" | grep -q "This service allows sftp connections only"; then
+            echo "OK: Shell access was properly rejected"
+          else
+            echo "ERROR: Shell access was not rejected as expected"
+            exit 1
+          fi
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image
