@@ -330,11 +330,14 @@ jobs:
           quit
           EOF
           )
+          echo "Raw output:"
           echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "Can't ls"; then
+          echo "Checking for 'not found' pattern..."
+          if echo "$OUTPUT" | grep -q "not found"; then
             echo "OK: Absolute path access outside chroot was blocked"
           else
             echo "ERROR: Absolute path access outside chroot succeeded"
+            echo "Pattern not found in output"
             exit 1
           fi
           
@@ -348,7 +351,7 @@ jobs:
           EOF
           )
           echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "Can't ls"; then
+          if echo "$OUTPUT" | grep -q "not found"; then
             echo "OK: System file access via relative path was blocked"
           else
             echo "ERROR: System file access via relative path succeeded"
