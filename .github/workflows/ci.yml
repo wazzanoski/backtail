@@ -302,8 +302,9 @@ jobs:
           # Test directory traversal attempts via SFTP
           echo "test content" > /tmp/test_file.txt
           
-          # Try to navigate to parent directory (should fail)
-          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          # Try to navigate to parent directory - should stay in chroot
+          # The command should succeed but user should remain contained
+          if ! sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
@@ -312,10 +313,11 @@ jobs:
           quit
           EOF
           then
+            echo "ERROR: Basic SFTP navigation failed"
             exit 1
           fi
           
-          # Try to access absolute path (should fail)
+          # Try to access absolute path outside chroot (should fail)
           if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
@@ -324,6 +326,20 @@ jobs:
           quit
           EOF
           then
+            echo "ERROR: Absolute path access outside chroot succeeded"
+            exit 1
+          fi
+          
+          # Try to access system files via relative path (should fail)
+          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            backtail@127.0.0.1 <<EOF
+          ls ../../../etc
+          quit
+          EOF
+          then
+            echo "ERROR: System file access via relative path succeeded"
             exit 1
           fi
 
