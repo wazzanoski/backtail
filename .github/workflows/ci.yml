@@ -331,7 +331,7 @@ jobs:
           EOF
           )
           echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "not found"; then
+          if echo "$OUTPUT" | grep -q "Can't ls.*not found"; then
             echo "OK: Absolute path access outside chroot was blocked"
           else
             echo "ERROR: Absolute path access outside chroot succeeded"
@@ -348,7 +348,7 @@ jobs:
           EOF
           )
           echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "not found"; then
+          if echo "$OUTPUT" | grep -q "Can't ls.*not found"; then
             echo "OK: System file access via relative path was blocked"
           else
             echo "ERROR: System file access via relative path succeeded"
