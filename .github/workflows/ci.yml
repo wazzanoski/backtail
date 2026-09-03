@@ -263,25 +263,37 @@ jobs:
           source /tmp/test_helper.sh
           
           echo "Test TCP forwarding should fail"
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
             -L 8080:localhost:80 \
-            -N backtail@127.0.0.1 2>&1 && exit 1
+            -N backtail@127.0.0.1 2>&1; then
+            echo "ERROR: TCP forwarding succeeded when it should have failed"
+            exit 1
+          fi
           
           echo "Test X11 forwarding should fail"
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
             -X \
-            -N backtail@127.0.0.1 2>&1 && exit 1
+            -N backtail@127.0.0.1 2>&1; then
+            echo "ERROR: X11 forwarding succeeded when it should have failed"
+            exit 1
+          fi
           
           echo "Test agent forwarding should fail"
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
             -A \
-            -N backtail@127.0.0.1 2>&1 && exit 1
+            -N backtail@127.0.0.1 2>&1; then
+            echo "ERROR: Agent forwarding succeeded when it should have failed"
+            exit 1
+          fi
 
       - name: "[Security] Test chroot escape attempts"
         run: |
