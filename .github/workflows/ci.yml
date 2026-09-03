@@ -61,15 +61,13 @@ jobs:
           
           # Test arbitrary command execution should fail
           echo "Testing that 'whoami' command is rejected..."
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "whoami" 2>&1 || exit_code=$?
-          
-          echo "Exit code: $exit_code"
+            backtail@127.0.0.1 "whoami"
           
           # Command should fail with non-zero exit code
-          if [ "$exit_code" -eq 0 ]; then
+          if [ "${CAPTURE_CODE}" -eq 0 ]; then
             echo "ERROR: Command execution succeeded when it should have failed"
             exit 1
           fi
@@ -78,15 +76,13 @@ jobs:
           
           # Test shell access should fail
           echo "Testing that shell access is rejected..."
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "/bin/sh" 2>&1 || exit_code=$?
-          
-          echo "Exit code: $exit_code"
+            backtail@127.0.0.1 "/bin/sh"
           
           # Shell access should fail with non-zero exit code
-          if [ "$exit_code" -eq 0 ]; then
+          if [ "${CAPTURE_CODE}" -eq 0 ]; then
             echo "ERROR: Shell access succeeded when it should have failed"
             exit 1
           fi

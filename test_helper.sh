@@ -44,6 +44,7 @@ setup_sftp_test() {
 }
 
 capture() {
+
     # Clear any previous run data
     unset CMD_OUT CMD_ERR CMD_CODE
     
@@ -53,9 +54,11 @@ capture() {
     local err_tmp
     err_tmp=$(mktemp)
 
+    set +e
     # Execute the passed command arguments, redirecting streams
     "$@" >"$out_tmp" 2>"$err_tmp"
-    
+    set -e
+
     # Expose the data to global variables
     export CAPTURE_CODE
     CAPTURE_CODE=$?
