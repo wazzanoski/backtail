@@ -48,16 +48,18 @@ capture() {
     unset CMD_OUT CMD_ERR CMD_CODE
     
     # Create temporary files for streams
-    local out_tmp=$(mktemp)
-    local err_tmp=$(mktemp)
+    local out_tmp
+    out_tmp=$(mktemp)
+    local err_tmp
+    err_tmp=$(mktemp)
 
     # Execute the passed command arguments, redirecting streams
     "$@" >"$out_tmp" 2>"$err_tmp"
     
     # Expose the data to global variables
-    CAPTURE_CODE=$?
-    CAPTURE_OUT=$(cat "$out_tmp")
-    CAPTURE_ERR=$(cat "$err_tmp")
+    export CAPTURE_CODE=$?
+    export CAPTURE_OUT=$(cat "$out_tmp")
+    export CAPTURE_ERR=$(cat "$err_tmp")
 
     # Clean up temporary files
     rm -f "$out_tmp" "$err_tmp"
