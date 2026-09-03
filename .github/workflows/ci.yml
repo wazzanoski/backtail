@@ -61,7 +61,7 @@ jobs:
           
           # Test arbitrary command execution should fail
           echo "Testing that 'whoami' command is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
@@ -78,7 +78,7 @@ jobs:
           
           # Test shell access should fail
           echo "Testing that shell access is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
