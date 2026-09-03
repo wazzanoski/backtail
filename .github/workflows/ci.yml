@@ -64,7 +64,6 @@ jobs:
           capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
             backtail@127.0.0.1 <<EOF
           whoami
           quit
@@ -82,7 +81,6 @@ jobs:
           capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
             backtail@127.0.0.1 <<EOF
           /bin/sh
           quit
