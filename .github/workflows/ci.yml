@@ -364,15 +364,16 @@ jobs:
           
           # Test arbitrary command execution should fail
           echo "Testing that 'whoami' command is rejected..."
-          OUTPUT=$(ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o ConnectTimeout=5 \
-            backtail@127.0.0.1 "whoami" 2>&1)
-          RETURN=$?
-          echo "OUTPUT=${OUTPUT}"
-          echo "RETURN=${RETURN}"
-          if echo "$OUTPUT" | grep -q "This service allows sftp connections only"; then
+            backtail@127.0.0.1 "whoami" 2>&1
+          
+          echo "CAPTURE_CODE=${CAPTURE_CODE}"
+          echo "CAPTURE_OUT=${CAPTURE_OUT}"
+          echo "CAPTURE_ERR=${CAPTURE_ERR}"
+          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
             echo "OK: Command execution was properly rejected"
           else
             echo "ERROR: Command execution was not rejected as expected"
@@ -381,15 +382,16 @@ jobs:
           
           # Test shell access should fail
           echo "Testing that shell access is rejected..."
-          OUTPUT=$(ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o ConnectTimeout=5 \
-            backtail@127.0.0.1 "/bin/sh" 2>&1)
-          RETURN=$?
-          echo "OUTPUT=${OUTPUT}"
-          echo "RETURN=${RETURN}"
-          if echo "$OUTPUT" | grep -q "This service allows sftp connections only"; then
+            backtail@127.0.0.1 "/bin/sh" 2>&1
+          
+          echo "CAPTURE_CODE=${CAPTURE_CODE}"
+          echo "CAPTURE_OUT=${CAPTURE_OUT}"
+          echo "CAPTURE_ERR=${CAPTURE_ERR}"
+          if echo "$CAPTURE_ERR" | grep -q "This service allows sftp connections only"; then
             echo "OK: Shell access was properly rejected"
           else
             echo "ERROR: Shell access was not rejected as expected"
