@@ -56,6 +56,7 @@ jobs:
           cp ./test_helper.sh /tmp/test_helper.sh
       
       - name: "[Security] Test ForceCommand enforcement"
+        # SSH Config: ForceCommand internal-sftp -d, PermitTTY no
         run: |
           source /tmp/test_helper.sh
           
@@ -66,13 +67,8 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "whoami"
           
-          # Command should fail with non-zero exit code
-          if [ "${CAPTURE_CODE}" -eq 0 ]; then
-            echo "ERROR: Command execution succeeded when it should have failed"
-            exit 1
-          fi
-          
-          echo "OK: Command execution was properly rejected with exit code $exit_code"
+          assert_failure
+          echo "OK: Command execution was properly rejected"
           
           # Test shell access should fail
           echo "Testing that shell access is rejected..."
@@ -81,13 +77,8 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 "/bin/sh"
           
-          # Shell access should fail with non-zero exit code
-          if [ "${CAPTURE_CODE}" -eq 0 ]; then
-            echo "ERROR: Shell access succeeded when it should have failed"
-            exit 1
-          fi
-          
-          echo "OK: Shell access was properly rejected with exit code $exit_code"
+          assert_failure
+          echo "OK: Shell access was properly rejected"
 
       - name: Test dry-run mode
         run: |
@@ -143,6 +134,7 @@ jobs:
           test -f "${SFTP_TEST_CONFIG_DIR}/ssh_host_ed25519_key" || exit 1
 
       - name: Test banner file creation
+        # SSH Config: Banner
         run: |
           source /tmp/test_helper.sh
           test -f "$SFTP_TEST_CONFIG_DIR/banner.txt" || exit 1
@@ -204,16 +196,15 @@ jobs:
           source /tmp/test_helper.sh
           
           # Run healthcheck inside container
-          docker exec "$SFTP_TEST_CONTAINER_NAME" /healthcheck.sh
-          HEALTHCHECK_EXIT=$?
+          capture docker exec "$SFTP_TEST_CONTAINER_NAME" /healthcheck.sh
           
-          if [ $HEALTHCHECK_EXIT -eq 0 ]; then
-            echo "Healthcheck passed successfully"
-          else
+          if [ "$CAPTURE_CODE" -ne 0 ]; then
             echo "Healthcheck failed"
             docker logs "$SFTP_TEST_CONTAINER_NAME"
             exit 1
           fi
+          
+          echo "Healthcheck passed successfully"
           
           # Also test Docker health status
           sleep 5  # Allow healthcheck to run
@@ -222,28 +213,35 @@ jobs:
           docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
 
       - name: "[Security] Test password authentication rejection"
+        # SSH Config: AuthenticationMethods publickey
         run: |
           source /tmp/test_helper.sh
           
           # Test password authentication should fail
-          sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
+          capture sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=password \
-            backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
+            backtail@127.0.0.1 "echo test"
+          
+          assert_failure
 
       - name: "[Security] Test keyboard-interactive authentication rejection"
+        # SSH Config: AuthenticationMethods publickey
         run: |
           source /tmp/test_helper.sh
           
           # Test keyboard-interactive authentication should fail
-          ssh -o StrictHostKeyChecking=no \
+          capture ssh -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=keyboard-interactive \
-            backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
+            backtail@127.0.0.1 "echo test"
+          
+          assert_failure
 
       - name: "[Security] Test unsupported key type rejection (RSA)"
+        # SSH Config: PubkeyAcceptedAlgorithms ssh-ed25519
         run: |
           source /tmp/test_helper.sh
           
@@ -252,17 +250,20 @@ jobs:
           setup_sftp_test "rsa"
           
           # Test RSA key authentication should fail (using the generated RSA key)
-          ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "echo test" 2>&1 && exit 1 || exit 0
+            backtail@127.0.0.1 "echo test"
+          
+          assert_failure
 
       - name: "[Security] Test invalid host key algorithm"
+        # SSH Config: HostKeyAlgorithms ssh-ed25519
         run: |
           source /tmp/test_helper.sh
           
           # Test connection with RSA host key algorithm (should fail)
-          if sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=rsa-sha2-256 \
@@ -270,17 +271,16 @@ jobs:
           ls
           quit
           EOF
-          then
-            exit 1
-          fi
-
+          
+          assert_failure
 
       - name: "[Security] Test valid host key algorithm"
+        # SSH Config: HostKeyAlgorithms ssh-ed25519
         run: |
           source /tmp/test_helper.sh
           
           # Test connection with only ED25519 host key algorithm (should succeed)
-          if ! sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=ssh-ed25519 \
@@ -288,48 +288,46 @@ jobs:
           ls
           quit
           EOF
-          then
-            exit 1
-          fi
+          
+          assert_success
 
       - name: "[Security] Test port forwarding rejection"
+        # SSH Config: AllowTcpForwarding no, AllowAgentForwarding no, X11Forwarding no
         run: |
           source /tmp/test_helper.sh
           
           echo "Test TCP forwarding should fail"
-          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o ConnectTimeout=5 \
             -L 8080:localhost:80 \
-            -N backtail@127.0.0.1 2>&1; then
-            echo "ERROR: TCP forwarding succeeded when it should have failed"
-            exit 1
-          fi
+            -N backtail@127.0.0.1
+          
+          assert_failure
           
           echo "Test X11 forwarding should fail"
-          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o ConnectTimeout=5 \
             -X \
-            -N backtail@127.0.0.1 2>&1; then
-            echo "ERROR: X11 forwarding succeeded when it should have failed"
-            exit 1
-          fi
+            -N backtail@127.0.0.1
+          
+          assert_failure
           
           echo "Test agent forwarding should fail"
-          if timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o ConnectTimeout=5 \
             -A \
-            -N backtail@127.0.0.1 2>&1; then
-            echo "ERROR: Agent forwarding succeeded when it should have failed"
-            exit 1
-          fi
+            -N backtail@127.0.0.1
+          
+          assert_failure
 
       - name: "[Security] Test chroot escape attempts"
+        # SSH Config: ChrootDirectory
         run: |
           source /tmp/test_helper.sh
           
@@ -338,61 +336,38 @@ jobs:
           
           # Try to navigate to parent directory - should stay in chroot
           # The command should succeed but user should remain contained
-          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            backtail@127.0.0.1 <<EOF
           cd ../../
           ls
           quit
           EOF
-          )
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "backtail"; then
-            echo "OK: User remained in chroot after cd ../../"
-          else
-            echo "ERROR: User escaped chroot or navigation failed"
-            exit 1
-          fi
+          
+          assert_stdout "backtail"
           
           # Try to access absolute path outside chroot (should fail)
-          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            backtail@127.0.0.1 <<EOF
           ls /etc
           quit
           EOF
-          )
-          echo "Raw output:"
-          echo "$OUTPUT"
-          echo "Checking for 'not found' pattern..."
-          if echo "$OUTPUT" | grep -q "not found"; then
-            echo "OK: Absolute path access outside chroot was blocked"
-          else
-            echo "ERROR: Absolute path access outside chroot succeeded"
-            echo "Pattern not found in output"
-            exit 1
-          fi
+          
+          assert_stderr 'not found'
           
           # Try to access system files via relative path (should fail)
-          OUTPUT=$(sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 2>&1 <<EOF
+            backtail@127.0.0.1 <<EOF
           ls ../../../etc
           quit
           EOF
-          )
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "not found"; then
-            echo "OK: System file access via relative path was blocked"
-          else
-            echo "ERROR: System file access via relative path succeeded"
-            exit 1
-          fi
-
-
+          
+          assert_stderr 'not found'
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image

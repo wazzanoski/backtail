@@ -75,6 +75,38 @@ capture() {
     echo "CAPTURE_ERR=${CAPTURE_ERR}"
 }
 
+assert_success() {
+    if [ "$CAPTURE_CODE" -ne 0 ]; then
+        echo "Assertion failed: Expected CAPTURE_CODE to be 0, but got ${CAPTURE_CODE}"
+        exit 1
+    fi
+}
+
+assert_failure() {
+    if [ "$CAPTURE_CODE" -eq 0 ]; then
+        echo "Assertion failed: Expected CAPTURE_CODE to be non-zero, but got ${CAPTURE_CODE}"
+        exit 1
+    fi
+}
+
+assert_stdout() {
+    local pattern="$1"
+    if [[ ! "$CAPTURE_OUT" =~ $pattern ]]; then
+        echo "Assertion failed: Expected CAPTURE_OUT to match pattern '${pattern}'"
+        echo "Actual CAPTURE_OUT: ${CAPTURE_OUT}"
+        exit 1
+    fi
+}
+
+assert_stderr() {
+    local pattern="$1"
+    if [[ ! "$CAPTURE_ERR" =~ $pattern ]]; then
+        echo "Assertion failed: Expected CAPTURE_ERR to match pattern '${pattern}'"
+        echo "Actual CAPTURE_ERR: ${CAPTURE_ERR}"
+        exit 1
+    fi
+}
+
 # Teardown test environment
 teardown_sftp_test() {
   echo "Teardown"
