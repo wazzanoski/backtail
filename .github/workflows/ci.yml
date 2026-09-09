@@ -204,13 +204,14 @@ jobs:
         run: |
           source /tmp/test_helper.sh
 
+          # shellcheck disable=SC2016
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="${SFTP_TEST_PORT}" \
             -A \
             backtail@127.0.0.1 \
-            'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'  # shellcheck disable=SC2016
+            'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'
 
           assert_failure
 
@@ -249,13 +250,14 @@ jobs:
         run: |
           source /tmp/test_helper.sh
 
+          # shellcheck disable=SC2016
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="${SFTP_TEST_PORT}" \
             -X \
             backtail@127.0.0.1 \
-            'echo "DISPLAY=${DISPLAY}"; test -n "${DISPLAY}"'  # shellcheck disable=SC2016
+            'echo "DISPLAY=${DISPLAY}"; test -n "${DISPLAY}"'
 
           assert_failure
 
