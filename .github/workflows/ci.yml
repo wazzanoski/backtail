@@ -57,51 +57,66 @@ jobs:
 
       - name: Test dry-run mode
         run: |
-          docker run --rm -e DRY_RUN=true \
-            backtail:test || exit 1
+          capture docker run --rm -e DRY_RUN=true backtail:test
+          assert_success
 
       - name: Test invalid PUID=abc (should fail)
         run: |
-          ! docker run --rm -e PUID=abc -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PUID=abc -e DRY_RUN=true backtail:test
+          assert_success
 
       - name: Test invalid PUID=0 - "root" (should fail)
         run: |
-          ! docker run --rm -e PUID=0 -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PUID=0 -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test invalid PUID=999 - in system user range (should fail)
         run: |
-          ! docker run --rm -e PUID=999 -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PUID=999 -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test invalid PGID=abc (should fail)
         run: |
-          ! docker run --rm -e PGID=abc -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PGID=abc -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test invalid PGID=0 - "root" (should fail)
         run: |
-          ! docker run --rm -e PGID=0 -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PGID=0 -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test invalid PGID=999 - in system user range (should fail)
         run: |
-          ! docker run --rm -e PGID=999 -e DRY_RUN=true backtail:test
+          capture docker run --rm -e PGID=999 -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test invalid UMASK=abc (should fail)
         run: |
-          ! docker run --rm -e UMASK=abc -e DRY_RUN=true backtail:test
+          capture docker run --rm -e UMASK=abc -e DRY_RUN=true backtail:test
+          assert_failure
       
       - name: Test invalid UMASK=888 (should fail)
         run: |
-          ! docker run --rm -e UMASK=888 -e DRY_RUN=true backtail:test
+          capture docker run --rm -e UMASK=888 -e DRY_RUN=true backtail:test
+          assert_failure
 
       - name: Test valid PUID/PGID/UMASK combinations
         run: |
           # Test system user range (PUID=99, PGID=100)
-          docker run --rm -e PUID=99 -e PGID=100 -e UMASK=022 -e DRY_RUN=true backtail:test || exit 1
-          docker run --rm -e PUID=99 -e PGID=100 -e UMASK=002 -e DRY_RUN=true backtail:test || exit 1
-          docker run --rm -e PUID=99 -e PGID=100 -e UMASK=000 -e DRY_RUN=true backtail:test || exit 1
+          capture docker run --rm -e PUID=99 -e PGID=100 -e UMASK=022 -e DRY_RUN=true backtail:test
+          assert_success
+          capture docker run --rm -e PUID=99 -e PGID=100 -e UMASK=002 -e DRY_RUN=true backtail:test
+          assert_success
+          capture docker run --rm -e PUID=99 -e PGID=100 -e UMASK=000 -e DRY_RUN=true backtail:test
+          assert_success
+          
           # Test regular user range (PUID>=1000, PGID>=1000)
-          docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=022 -e DRY_RUN=true backtail:test || exit 1
-          docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=002 -e DRY_RUN=true backtail:test || exit 1
-          docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=000 -e DRY_RUN=true backtail:test || exit 1
+          capture docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=022 -e DRY_RUN=true backtail:test
+          assert_success
+          capture docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=002 -e DRY_RUN=true backtail:test
+          assert_success
+          capture docker run --rm -e PUID=1000 -e PGID=1000 -e UMASK=000 -e DRY_RUN=true backtail:test
+          assert_success
 
       - name: Test SSH host key generation
         run: |
@@ -109,10 +124,9 @@ jobs:
           test -f "${SFTP_TEST_CONFIG_DIR}/ssh_host_ed25519_key" || exit 1
 
       - name: Test banner file creation
-        # SSH Config: Banner
         run: |
           source /tmp/test_helper.sh
-          test -f "$SFTP_TEST_CONFIG_DIR/banner.txt" || exit 1
+          test -f "${SFTP_TEST_CONFIG_DIR}/banner.txt" || exit 1
       
       - name: Test user permissions
         run: |
@@ -134,312 +148,311 @@ jobs:
       - name: Test SSH config permissions
         run: |
           source /tmp/test_helper.sh
-          
+
           # Check SSH config file permissions inside container
           echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
           echo "/etc/ssh/ssh_host_ed25519_key"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
 
           # Check config ownership
           echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
           echo "/etc/ssh/ssh_host_ed25519_key ownership"
-          docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "$SFTP_TEST_CONTAINER_NAME" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
-
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
 
       - name: Test SFTP file transfer
         run: |
           source /tmp/test_helper.sh
-          
+
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
-          sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          sftp -i "${SFTP_TEST_KEY_PATH}" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 <<EOF
           put /tmp/test_file.txt test_file.txt
           ls
           quit
           EOF
-          
+
           # Verify file was transferred (check in the mounted backup directory)
-          test -f "$SFTP_TEST_BACKUP_DIR/test_file.txt" || exit 1
+          test -f "${SFTP_TEST_BACKUP_DIR}/test_file.txt" || exit 1
 
       - name: Test healthcheck functionality
         run: |
           source /tmp/test_helper.sh
-          
+
           # Run healthcheck inside container
-          capture docker exec "$SFTP_TEST_CONTAINER_NAME" /healthcheck.sh
-          
-          if [ "$CAPTURE_CODE" -ne 0 ]; then
+          capture docker exec "${SFTP_TEST_CONTAINER_NAME}" /healthcheck.sh
+
+          if [ "${CAPTURE_CODE}" -ne 0 ]; then
             echo "Healthcheck failed"
-            docker logs "$SFTP_TEST_CONTAINER_NAME"
+            docker logs "${SFTP_TEST_CONTAINER_NAME}"
             exit 1
           fi
-          
+
           echo "Healthcheck passed successfully"
-          
+
           # Also test Docker health status
           sleep 5  # Allow healthcheck to run
-          HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$SFTP_TEST_CONTAINER_NAME")
-          echo "Docker health status: $HEALTH_STATUS"
-          docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
+          HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${SFTP_TEST_CONTAINER_NAME}")
+          echo "Docker health status: ${HEALTH_STATUS}"
+          docker inspect --format='{{json .State.Health}}' "${SFTP_TEST_CONTAINER_NAME}"
 
       - name: "[Security] Test port forwarding rejection (AllowAgentForwarding no)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -A \
             backtail@127.0.0.1 \
             'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'  # shellcheck disable=SC2016
-          
+
           assert_failure
 
       - name: "[Security] Test stream local forwarding rejection (AllowStreamLocalForwarding no)"
         run: |
           source /tmp/test_helper.sh
 
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o ExitOnForwardFailure=yes \
             -L /tmp/client.sock:/tmp/server.sock \
             backtail@127.0.0.1 \
             true
-          
+
           assert_failure
 
       - name: "[Security] Test port forwarding rejection (AllowTcpForwarding no)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o ConnectTimeout=5 \
             -o ExitOnForwardFailure=yes \
             -L 8080:localhost:80 \
             -N \
             backtail@127.0.0.1
-          
+
           assert_failure
 
       - name: "[Security] Test port forwarding rejection (X11Forwarding no)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -X \
             backtail@127.0.0.1 \
             'echo "DISPLAY=${DISPLAY}"; test -n "${DISPLAY}"'  # shellcheck disable=SC2016
-          
+
           assert_failure
 
       - name: "[Security] Test password authentication rejection (AuthenticationMethods publickey)"
         run: |
           source /tmp/test_helper.sh
-          
+
           capture sshpass -p "testpassword" ssh \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o PubkeyAuthentication=no \
             -o BatchMode=yes \
             -o PreferredAuthentications=password \
             backtail@127.0.0.1 \
             'true'
-          
+
           assert_failure
 
       - name: "[Security] Test keyboard-interactive authentication rejection (AuthenticationMethods publickey)"
         run: |
           source /tmp/test_helper.sh
-          
+
           capture ssh \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o PreferredAuthentications=keyboard-interactive \
             backtail@127.0.0.1\
             'true'
-          
+
           assert_failure
 
       - name: "[Security] Test RSA key type rejection (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
-          
+
           # First teardown the auto-setup, then setup with RSA key
           teardown_sftp_test
           setup_sftp_test "rsa"
-          
+
           # Test RSA key authentication should fail (using the generated RSA key)
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 \
             'true'
-          
+
           assert_failure
 
       - name: "[Security] Test ForceCommand enforcement (PermitTTY no)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o RequestTTY=force \
             backtail@127.0.0.1
-          
+
           assert_failure          
 
       - name: "[Security] Test ForceCommand enforcement (ForceCommand internal-sftp)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 \
             'true'
-          
+
           assert_failure
 
       - name: "[Security] Test invalid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o HostKeyAlgorithms=rsa-sha2-256 \
             backtail@127.0.0.1 \
             'true'
-          
+
           assert_failure
 
       - name: "[Security] Test valid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
-          
-          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             -o HostKeyAlgorithms=ssh-ed25519 \
             backtail@127.0.0.1 \
             'true'
-          
+
           assert_success
 
       - name: "[Security] Test chroot escape attempts (ChrootDirectory)"
         run: |
           source /tmp/test_helper.sh
-          
+
           # Test directory traversal attempts via SFTP
           echo "test content" > /tmp/test_file.txt
-          
+
           # Try to navigate to parent directory - should stay in chroot
           # The command should succeed but user should remain contained
-          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 <<EOF
           cd ../../
           pwd
           quit
           EOF
-          
+
           assert_stdout "/"
-          
+
           # Try to access absolute path outside chroot (should fail)
-          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 <<EOF
           ls /etc
           quit
           EOF
-          
+
           assert_stderr 'not found'
-          
+
           # Try to access system files via relative path (should fail)
-          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 <<EOF
           ls ../../../etc
           quit
           EOF
-          
+
           assert_stderr 'not found'
 
       - name: "[Security] Test root login rejection (PermitRootLogin no)"
         run: |
           source /tmp/test_helper.sh
 
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             root@127.0.0.1 \
             true
-          
+
           assert_failure
 
       - name: "[Security] Test unauthorized user rejection (AllowUsers backtail)"
         run: |
           source /tmp/test_helper.sh
 
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             nobody@127.0.0.1 \
             true
-          
+
           assert_failure
 
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             guest@127.0.0.1 \
             true
-          
+
           assert_failure
 
       - name: "[Security] Test force command landing directory (ForceCommand internal-sftp -d /backtail)"
         run: |
           source /tmp/test_helper.sh
 
-          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+          capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 <<EOF
           pwd
           quit
           EOF
-          
+
           assert_stdout "/backtail"
 
       - name: "[Security] Test banner display (Banner /config/banner.txt)"
@@ -449,14 +462,14 @@ jobs:
           BANNER_DISPLAY="banner test"
 
           echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/banner.txt"
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1\
             true
-          
+
           assert_stdout "${BANNER_DISPLAY}"
 
       - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)"
@@ -464,13 +477,13 @@ jobs:
           source /tmp/test_helper.sh
           teardown_sftp_test
           setup_sftp_test "ecdsa"
-          
-          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+
+          capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
+            -o Port="${SFTP_TEST_PORT}" \
             backtail@127.0.0.1 "echo test"
-            
+
           assert_failure
 
   build_and_publish_to_ghcr:
