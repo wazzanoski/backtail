@@ -197,7 +197,7 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             -A \
             backtail@127.0.0.1 \
-            'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'
+            'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'  # shellcheck disable=SC2016
           
           assert_failure
 
@@ -209,7 +209,7 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            -o ExitOnForwardFailure=yes
+            -o ExitOnForwardFailure=yes \
             -L /tmp/client.sock:/tmp/server.sock \
             backtail@127.0.0.1 \
             true
@@ -242,7 +242,7 @@ jobs:
             -o Port="$SFTP_TEST_PORT" \
             -X \
             backtail@127.0.0.1 \
-            'echo "DISPLAY=$DISPLAY"; test -n "$DISPLAY"
+            'echo "DISPLAY=${DISPLAY}"; test -n "${DISPLAY}"'  # shellcheck disable=SC2016
           
           assert_failure
 
@@ -409,7 +409,8 @@ jobs:
         run: |
           source /tmp/test_helper.sh
 
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             nobody@127.0.0.1 \
@@ -445,7 +446,9 @@ jobs:
         run: |
           source /tmp/test_helper.sh
 
-          echo "banner test" > ${SFTP_TEST_CONFIG_DIR}/banner.txt
+          BANNER_DISPLAY="banner test"
+
+          echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/banner.txt"
           
           capture ssh -i "$SFTP_TEST_KEY_PATH" \
             -o StrictHostKeyChecking=no \
@@ -454,7 +457,7 @@ jobs:
             backtail@127.0.0.1\
             true
           
-          assert_stdout "banner test"
+          assert_stdout "${BANNER_DISPLAY}"
 
       - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
