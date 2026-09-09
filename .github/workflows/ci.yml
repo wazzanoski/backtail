@@ -57,8 +57,7 @@ jobs:
 
       - name: Test dry-run mode
         run: |
-          capture docker run --rm -e DRY_RUN=true backtail:test
-          assert_success
+          docker run --rm -e DRY_RUN=true backtail:test || exit 1
 
       - name: Test invalid PUID=abc (should fail)
         run: |
