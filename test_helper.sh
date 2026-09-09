@@ -1,6 +1,25 @@
 #!/bin/bash
 # Helper functions for SFTP testing in CI pipeline
 
+# Source shared configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/config.env"
+
+if [ ! -f "${CONFIG_FILE}" ]; then
+  echo "Error: config.env not found at ${CONFIG_FILE}"
+  echo "This file is required as the single source of truth for configuration values"
+  exit 1
+fi
+
+source "${CONFIG_FILE}"
+
+# Validate required configuration variables are set
+if [ -z "${BANNER_FILE}" ] || [ -z "${HOST_KEY_FILE}" ] || [ -z "${SSHD_CONFIG_FILE}" ]; then
+  echo "Error: Required configuration variables not set in config.env"
+  echo "Required: BANNER_FILE, HOST_KEY_FILE, SSHD_CONFIG_FILE"
+  exit 1
+fi
+
 # Export test configuration variables
 export SFTP_TEST_PORT="2222"
 export SFTP_TEST_CONTAINER_NAME="backtail-test"
@@ -8,6 +27,11 @@ export SFTP_TEST_KEY_NAME="test_key"
 export SFTP_TEST_KEY_PATH="/tmp/${SFTP_TEST_KEY_NAME}"
 export SFTP_TEST_CONFIG_DIR="/tmp/test-config"
 export SFTP_TEST_BACKUP_DIR="/tmp/test-backup"
+
+# Export SSH configuration variables from shared config
+export BANNER_FILE="${BANNER_FILE}"
+export HOST_KEY_FILE="${HOST_KEY_FILE}"
+export SSHD_CONFIG_FILE="${SSHD_CONFIG_FILE}"
 
 # Setup test environment
 # Args: $1 = key_type (optional, defaults to ed25519)

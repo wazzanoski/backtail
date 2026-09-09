@@ -1,5 +1,10 @@
 FROM alpine:latest
 
+# Build arguments (must be provided - see config.env for values)
+ARG BANNER_FILE
+ARG HOST_KEY_FILE
+ARG SSHD_CONFIG_FILE
+
 # Environment variables
 ENV CONFIG_DIR="/config"
 ENV USER="backtail"
@@ -12,6 +17,10 @@ ENV UMASK=000
 ENV DRY_RUN=false
 # Tailscale control - disable for testing/local networking
 ENV TAILSCALE_ENABLED=true
+# SSH configuration file paths (from build args)
+ENV BANNER_FILE=${BANNER_FILE}
+ENV HOST_KEY_FILE=${HOST_KEY_FILE}
+ENV SSHD_CONFIG_FILE=${SSHD_CONFIG_FILE}
 
 RUN mkdir -p "${CONFIG_DIR}"
 VOLUME "${CONFIG_DIR}"
@@ -33,11 +42,11 @@ RUN mkdir -p "/var/run/tailscale" "/var/lib/tailscale"
 # User/group creation moved to entrypoint.sh for runtime PUID/PGID support
 
 # Setup sftp
-COPY "sftp_jail.conf" "/etc/ssh/sshd_config.d/"
-RUN chmod 400 "/etc/ssh/sshd_config.d/sftp_jail.conf"
+COPY "${SSHD_CONFIG_FILE}" "/etc/ssh/sshd_config.d/"
+RUN chmod 400 "/etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}"
 COPY "run_sftp.sh" /
-COPY "banner.txt" "/etc/ssh/"
-RUN chmod 444 "/etc/ssh/banner.txt"
+COPY "${BANNER_FILE}" "/etc/ssh/"
+RUN chmod 444 "/etc/ssh/${BANNER_FILE}"
 
 # Setup tailscale
 COPY "run_tailscale.sh" /

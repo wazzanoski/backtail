@@ -34,10 +34,17 @@ jobs:
       # Lint SSHD Configuration
       - name: Test SSHD Syntax
         run: |
+          # Validate config.env exists before sourcing
+          if [ ! -f "./config.env" ]; then
+            echo "Error: config.env not found"
+            exit 1
+          fi
+          # Source shared configuration for consistent config file names
+          source ./config.env
           # 1. Create the missing privilege directory that OpenSSH expects
           sudo mkdir -p /run/sshd
           # 2. Safely run your configuration validation
-          sudo sshd -t -f ./sftp_jail.conf
+          sudo sshd -t -f "./${SSHD_CONFIG_FILE}"
 
   test:
     name: Unit Tests
@@ -46,9 +53,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Validate config.env exists
+        run: |
+          if [ ! -f "./config.env" ]; then
+            echo "Error: config.env not found"
+            exit 1
+          fi
+          echo "config.env found and will be used for configuration"
+
       - name: Build Docker image
-        run: docker build -t backtail:test .
+        run: |
+          # Source shared configuration
+          source ./config.env
+          # Build with configuration variables as build args
+          docker build \
+            --build-arg BANNER_FILE="${BANNER_FILE}" \
+            --build-arg HOST_KEY_FILE="${HOST_KEY_FILE}" \
+            --build-arg SSHD_CONFIG_FILE="${SSHD_CONFIG_FILE}" \
+            -t backtail:test .
       
       - name: Setup test helper
         run: |
@@ -57,11 +80,11 @@ jobs:
 
       - name: Test dry-run mode
         run: |
-          docker run --rm -e DRY_RUN=true backtail:test || exit 1
+          ! docker run --rm -e DRY_RUN=true backtail:test || exit 1
 
       - name: Test invalid PUID=abc (should fail)
         run: |
-          docker run --rm -e PUID=abc -e DRY_RUN=true backtail:test || exit 1
+          ! docker run --rm -e PUID=abc -e DRY_RUN=true backtail:test || exit 1
 
       - name: Test invalid PUID=0 - "root" (should fail)
         run: |
@@ -106,12 +129,12 @@ jobs:
       - name: Test SSH host key generation
         run: |
           source /tmp/test_helper.sh
-          test -f "${SFTP_TEST_CONFIG_DIR}/ssh_host_ed25519_key" || exit 1
+          test -f "${SFTP_TEST_CONFIG_DIR}/${HOST_KEY_FILE}" || exit 1
 
       - name: Test banner file creation
         run: |
           source /tmp/test_helper.sh
-          test -f "${SFTP_TEST_CONFIG_DIR}/banner.txt" || exit 1
+          test -f "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}" || exit 1
       
       - name: Test user permissions
         run: |
@@ -135,16 +158,16 @@ jobs:
           source /tmp/test_helper.sh
 
           # Check SSH config file permissions inside container
-          echo "/etc/ssh/sshd_config.d/sftp_jail.conf"
-          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
-          echo "/etc/ssh/ssh_host_ed25519_key"
-          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+          echo "/etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}"
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}" && exit 1)
+          echo "/etc/ssh/${HOST_KEY_FILE}"
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/${HOST_KEY_FILE}" | grep -q '400' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%a' /etc/ssh/${HOST_KEY_FILE}" && exit 1)
 
           # Check config ownership
-          echo "/etc/ssh/sshd_config.d/sftp_jail.conf ownership"
-          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/sftp_jail.conf" && exit 1)
-          echo "/etc/ssh/ssh_host_ed25519_key ownership"
-          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/ssh_host_ed25519_key" && exit 1)
+          echo "/etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE} ownership"
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}" && exit 1)
+          echo "/etc/ssh/${HOST_KEY_FILE} ownership"
+          docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/${HOST_KEY_FILE}" | grep -q 'root:root' || (docker exec "${SFTP_TEST_CONTAINER_NAME}" sh -c "stat -c '%U:%G' /etc/ssh/${HOST_KEY_FILE}" && exit 1)
 
       - name: Test SFTP file transfer
         run: |
@@ -448,7 +471,7 @@ jobs:
 
           BANNER_DISPLAY="banner test"
 
-          echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/banner.txt"
+          echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -502,6 +525,13 @@ jobs:
             type=sha,prefix=
             type=semver,pattern={{version}}
 
+      - name: Load configuration from config.env
+        id: config
+        run: |
+          echo "BANNER_FILE=$(grep '^BANNER_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
+          echo "HOST_KEY_FILE=$(grep '^HOST_KEY_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
+          echo "SSHD_CONFIG_FILE=$(grep '^SSHD_CONFIG_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -509,3 +539,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BANNER_FILE=${{ steps.config.outputs.BANNER_FILE }}
+            HOST_KEY_FILE=${{ steps.config.outputs.HOST_KEY_FILE }}
+            SSHD_CONFIG_FILE=${{ steps.config.outputs.SSHD_CONFIG_FILE }}

@@ -46,7 +46,7 @@ check_group_id_matches() {
 
 # Check if SSH host key exists.
 check_ssh_host_key_exists() {
-  host_key="/etc/ssh/ssh_host_ed25519_key"
+  host_key="/etc/ssh/${HOST_KEY_FILE}"
   STATUS=1
   if [ -f "${host_key}" ]; then
     STATUS=0
