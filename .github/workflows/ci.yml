@@ -456,7 +456,7 @@ jobs:
           
           assert_stdout "banner test"
 
-      - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)
+      - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
           teardown_sftp_test
