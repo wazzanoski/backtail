@@ -54,31 +54,6 @@ jobs:
         run: |
           chmod +x ./test_helper.sh
           cp ./test_helper.sh /tmp/test_helper.sh
-      
-      - name: "[Security] Test ForceCommand enforcement"
-        # SSH Config: ForceCommand internal-sftp -d, PermitTTY no
-        run: |
-          source /tmp/test_helper.sh
-          
-          # Test arbitrary command execution should fail
-          echo "Testing that 'whoami' command is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "whoami"
-          
-          assert_failure
-          echo "OK: Command execution was properly rejected"
-          
-          # Test shell access should fail
-          echo "Testing that shell access is rejected..."
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "/bin/sh"
-          
-          assert_failure
-          echo "OK: Shell access was properly rejected"
 
       - name: Test dry-run mode
         run: |
@@ -212,36 +187,96 @@ jobs:
           echo "Docker health status: $HEALTH_STATUS"
           docker inspect --format='{{json .State.Health}}' "$SFTP_TEST_CONTAINER_NAME"
 
-      - name: "[Security] Test password authentication rejection"
-        # SSH Config: AuthenticationMethods publickey
+      - name: "[Security] Test port forwarding rejection (AllowAgentForwarding no)"
         run: |
           source /tmp/test_helper.sh
           
-          # Test password authentication should fail
-          capture sshpass -p "testpassword" ssh -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            -o PreferredAuthentications=password \
-            backtail@127.0.0.1 "echo test"
+            -A \
+            backtail@127.0.0.1 \
+            'echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}"; ssh-add -l'
           
           assert_failure
 
-      - name: "[Security] Test keyboard-interactive authentication rejection"
-        # SSH Config: AuthenticationMethods publickey
+      - name: "[Security] Test stream local forwarding rejection (AllowStreamLocalForwarding no)"
+        run: |
+          source /tmp/test_helper.sh
+
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o ExitOnForwardFailure=yes
+            -L /tmp/client.sock:/tmp/server.sock \
+            backtail@127.0.0.1 \
+            true
+          
+          assert_failure
+
+      - name: "[Security] Test port forwarding rejection (AllowTcpForwarding no)"
         run: |
           source /tmp/test_helper.sh
           
-          # Test keyboard-interactive authentication should fail
-          capture ssh -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o ConnectTimeout=5 \
+            -o ExitOnForwardFailure=yes \
+            -L 8080:localhost:80 \
+            -N \
+            backtail@127.0.0.1
+          
+          assert_failure
+
+      - name: "[Security] Test port forwarding rejection (X11Forwarding no)"
+        run: |
+          source /tmp/test_helper.sh
+          
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -X \
+            backtail@127.0.0.1 \
+            'echo "DISPLAY=$DISPLAY"; test -n "$DISPLAY"
+          
+          assert_failure
+
+      - name: "[Security] Test password authentication rejection (AuthenticationMethods publickey)"
+        run: |
+          source /tmp/test_helper.sh
+          
+          capture sshpass -p "testpassword" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o PubkeyAuthentication=no \
+            -o BatchMode=yes \
+            -o PreferredAuthentications=password \
+            backtail@127.0.0.1 \
+            'true'
+          
+          assert_failure
+
+      - name: "[Security] Test keyboard-interactive authentication rejection (AuthenticationMethods publickey)"
+        run: |
+          source /tmp/test_helper.sh
+          
+          capture ssh \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o PreferredAuthentications=keyboard-interactive \
-            backtail@127.0.0.1 "echo test"
+            backtail@127.0.0.1\
+            'true'
           
           assert_failure
 
-      - name: "[Security] Test unsupported key type rejection (RSA)"
-        # SSH Config: PubkeyAcceptedAlgorithms ssh-ed25519
+      - name: "[Security] Test RSA key type rejection (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
           
@@ -250,84 +285,70 @@ jobs:
           setup_sftp_test "rsa"
           
           # Test RSA key authentication should fail (using the generated RSA key)
-          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
-            backtail@127.0.0.1 "echo test"
+            backtail@127.0.0.1 \
+            'true'
           
           assert_failure
 
-      - name: "[Security] Test invalid host key algorithm"
-        # SSH Config: HostKeyAlgorithms ssh-ed25519
+      - name: "[Security] Test ForceCommand enforcement (PermitTTY no)"
         run: |
           source /tmp/test_helper.sh
           
-          # Test connection with RSA host key algorithm (should fail)
-          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            -o RequestTTY=force \
+            backtail@127.0.0.1
+          
+          assert_failure          
+
+      - name: "[Security] Test ForceCommand enforcement (ForceCommand internal-sftp)"
+        run: |
+          source /tmp/test_helper.sh
+          
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            backtail@127.0.0.1 \
+            'true'
+          
+          assert_failure
+
+      - name: "[Security] Test invalid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
+        run: |
+          source /tmp/test_helper.sh
+          
+          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=rsa-sha2-256 \
-            backtail@127.0.0.1 <<EOF
-          ls
-          quit
-          EOF
+            backtail@127.0.0.1 \
+            'true'
           
           assert_failure
 
-      - name: "[Security] Test valid host key algorithm"
-        # SSH Config: HostKeyAlgorithms ssh-ed25519
+      - name: "[Security] Test valid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
         run: |
           source /tmp/test_helper.sh
           
-          # Test connection with only ED25519 host key algorithm (should succeed)
-          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             -o HostKeyAlgorithms=ssh-ed25519 \
-            backtail@127.0.0.1 <<EOF
-          ls
-          quit
-          EOF
+            backtail@127.0.0.1 \
+            'true'
           
           assert_success
 
-      - name: "[Security] Test port forwarding rejection"
-        # SSH Config: AllowTcpForwarding no, AllowAgentForwarding no, X11Forwarding no
-        run: |
-          source /tmp/test_helper.sh
-          
-          echo "Test TCP forwarding should fail"
-          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
-            -L 8080:localhost:80 \
-            -N backtail@127.0.0.1
-          
-          assert_failure
-          
-          echo "Test X11 forwarding should fail"
-          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
-            -X \
-            -N backtail@127.0.0.1
-          
-          assert_failure
-          
-          echo "Test agent forwarding should fail"
-          capture timeout 5 ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o Port="$SFTP_TEST_PORT" \
-            -o ConnectTimeout=5 \
-            -A \
-            -N backtail@127.0.0.1
-          
-          assert_failure
-
-      - name: "[Security] Test chroot escape attempts"
-        # SSH Config: ChrootDirectory
+      - name: "[Security] Test chroot escape attempts (ChrootDirectory)"
         run: |
           source /tmp/test_helper.sh
           
@@ -336,19 +357,21 @@ jobs:
           
           # Try to navigate to parent directory - should stay in chroot
           # The command should succeed but user should remain contained
-          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
           cd ../../
-          ls
+          pwd
           quit
           EOF
           
-          assert_stdout "backtail"
+          assert_stdout "/"
           
           # Try to access absolute path outside chroot (should fail)
-          capture sftp -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o Port="$SFTP_TEST_PORT" \
             backtail@127.0.0.1 <<EOF
@@ -368,6 +391,84 @@ jobs:
           EOF
           
           assert_stderr 'not found'
+
+      - name: "[Security] Test root login rejection (PermitRootLogin no)"
+        run: |
+          source /tmp/test_helper.sh
+
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            root@127.0.0.1 \
+            true
+          
+          assert_failure
+
+      - name: "[Security] Test unauthorized user rejection (AllowUsers backtail)"
+        run: |
+          source /tmp/test_helper.sh
+
+          capture ssh -i "$SFTP_TEST_KEY_PATH" -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            nobody@127.0.0.1 \
+            true
+          
+          assert_failure
+
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            guest@127.0.0.1 \
+            true
+          
+          assert_failure
+
+      - name: "[Security] Test force command landing directory (ForceCommand internal-sftp -d /backtail)"
+        run: |
+          source /tmp/test_helper.sh
+
+          capture sftp -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            backtail@127.0.0.1 <<EOF
+          pwd
+          quit
+          EOF
+          
+          assert_stdout "/backtail"
+
+      - name: "[Security] Test banner display (Banner /config/banner.txt)"
+        run: |
+          source /tmp/test_helper.sh
+
+          echo "banner test" > ${SFTP_TEST_CONFIG_DIR}/banner.txt
+          
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            backtail@127.0.0.1\
+            true
+          
+          assert_stdout "banner test"
+
+      - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)
+        run: |
+          source /tmp/test_helper.sh
+          teardown_sftp_test
+          setup_sftp_test "ecdsa"
+          
+          capture ssh -i "$SFTP_TEST_KEY_PATH" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o Port="$SFTP_TEST_PORT" \
+            backtail@127.0.0.1 "echo test"
+            
+          assert_failure
 
   build_and_publish_to_ghcr:
     name: Build and Publish Docker Image

@@ -107,6 +107,14 @@ assert_stderr() {
     fi
 }
 
+assert_exit() {
+    local EXIT_CODE="$1"
+    if [ "$CAPTURE_CODE" -ne "$EXIT_CODE" ]; then
+        echo "Assertion failed: Expected CAPTURE_CODE to be $EXIT_CODE, but got ${CAPTURE_CODE}"
+        exit 1
+    fi
+}
+
 # Teardown test environment
 teardown_sftp_test() {
   echo "Teardown"
