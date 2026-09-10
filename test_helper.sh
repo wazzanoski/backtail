@@ -57,6 +57,8 @@ setup_sftp_test() {
     -e TAILSCALE_ENABLED=false \
     backtail:test > /dev/null
 
+  trap teardown_sftp_test EXIT
+
   # Wait for SSH to be ready
   for i in $(seq 1 30); do
     if docker exec "${SFTP_TEST_CONTAINER_NAME}" pgrep sshd >/dev/null; then
@@ -154,6 +156,3 @@ teardown_sftp_test() {
   # Remove any temporary test files
   rm -rf "/tmp/test*.txt"
 }
-
-trap teardown_sftp_test EXIT
-
