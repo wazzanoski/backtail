@@ -11,6 +11,7 @@ if [ ! -f "${CONFIG_FILE}" ]; then
   exit 1
 fi
 
+# shellcheck disable=SC1090
 . "${CONFIG_FILE}"
 
 # Validate required configuration variables are set
