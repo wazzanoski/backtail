@@ -462,10 +462,12 @@ jobs:
 
       - name: "[Security] Test banner display (Banner /config/banner.txt)"
         run: |
-          BANNER_DISPLAY="banner test"
-          echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
-
           . ./test_helper.sh
+
+          BANNER_DISPLAY="banner test"
+          ls -la "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
+          cat "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
+          echo "${BANNER_DISPLAY}" > "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
