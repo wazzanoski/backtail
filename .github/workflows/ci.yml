@@ -214,7 +214,7 @@ jobs:
             -o Port="${SFTP_TEST_PORT}" \
             -A \
             backtail@127.0.0.1 \
-            '[ -z "$SSH_AUTH_SOCK" ]'
+            '[ -z "${SSH_AUTH_SOCK}" ]'
 
           assert_success
 
