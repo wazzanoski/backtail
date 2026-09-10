@@ -528,9 +528,9 @@ jobs:
       - name: Load configuration from config.env
         id: config
         run: |
-          echo "BANNER_FILE=$(grep '^BANNER_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
-          echo "HOST_KEY_FILE=$(grep '^HOST_KEY_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
-          echo "SSHD_CONFIG_FILE=$(grep '^SSHD_CONFIG_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> $GITHUB_OUTPUT
+          echo "BANNER_FILE=$(grep '^BANNER_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> "$GITHUB_OUTPUT"
+          echo "HOST_KEY_FILE=$(grep '^HOST_KEY_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> "$GITHUB_OUTPUT"
+          echo "SSHD_CONFIG_FILE=$(grep '^SSHD_CONFIG_FILE=' config.env | cut -d'=' -f2 | tr -d '"')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
