@@ -244,8 +244,8 @@ jobs:
             -o ConnectTimeout=5 \
             -o ExitOnForwardFailure=yes \
             -L 8080:localhost:80 \
-            -N \
-            backtail@127.0.0.1
+            backtail@127.0.0.1 \
+            true
 
           assert_failure
 
