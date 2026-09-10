@@ -73,6 +73,10 @@ jobs:
             --build-arg SSHD_CONFIG_FILE="${SSHD_CONFIG_FILE}" \
             -t backtail:test .
 
+      - name: One Time Setup
+        run: |
+          . ./test_helper.sh
+
       - name: Test dry-run mode
         run: |
           docker run --rm -e DRY_RUN=true backtail:test || exit 1
@@ -123,12 +127,12 @@ jobs:
 
       - name: Test SSH host key generation
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
           test -f "${SFTP_TEST_CONFIG_DIR}/${HOST_KEY_FILE}" || exit 1
 
       - name: Test banner file creation
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
           test -f "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}" || exit 1
       
       - name: Test user permissions
@@ -150,7 +154,7 @@ jobs:
 
       - name: Test SSH config permissions
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # Check SSH config file permissions inside container
           echo "/etc/ssh/sshd_config.d/${SSHD_CONFIG_FILE}"
@@ -166,7 +170,7 @@ jobs:
 
       - name: Test SFTP file transfer
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # Test SFTP connection and file transfer
           echo "test content" > /tmp/test_file.txt
@@ -184,7 +188,7 @@ jobs:
 
       - name: Test healthcheck functionality
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # Run healthcheck inside container
           capture docker exec "${SFTP_TEST_CONTAINER_NAME}" /healthcheck.sh
@@ -205,7 +209,7 @@ jobs:
 
       - name: "[Security] Test port forwarding rejection (AllowAgentForwarding no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # shellcheck disable=SC2016
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
@@ -220,7 +224,7 @@ jobs:
 
       - name: "[Security] Test stream local forwarding rejection (AllowStreamLocalForwarding no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -235,7 +239,7 @@ jobs:
 
       - name: "[Security] Test port forwarding rejection (AllowTcpForwarding no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -251,7 +255,7 @@ jobs:
 
       - name: "[Security] Test port forwarding rejection (X11Forwarding no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # shellcheck disable=SC2016
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
@@ -266,7 +270,7 @@ jobs:
 
       - name: "[Security] Test password authentication rejection (AuthenticationMethods publickey)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture sshpass -p "testpassword" ssh \
             -o StrictHostKeyChecking=no \
@@ -282,7 +286,7 @@ jobs:
 
       - name: "[Security] Test keyboard-interactive authentication rejection (AuthenticationMethods publickey)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh \
             -o StrictHostKeyChecking=no \
@@ -296,7 +300,7 @@ jobs:
 
       - name: "[Security] Test RSA key type rejection (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # First teardown the auto-setup, then setup with RSA key
           teardown_sftp_test
@@ -314,7 +318,7 @@ jobs:
 
       - name: "[Security] Test ForceCommand enforcement (PermitTTY no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -327,7 +331,7 @@ jobs:
 
       - name: "[Security] Test ForceCommand enforcement (ForceCommand internal-sftp)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -340,7 +344,7 @@ jobs:
 
       - name: "[Security] Test invalid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -354,7 +358,7 @@ jobs:
 
       - name: "[Security] Test valid host key algorithm (HostKeyAlgorithms ssh-ed25519)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -368,7 +372,7 @@ jobs:
 
       - name: "[Security] Test chroot escape attempts (ChrootDirectory)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           # Test directory traversal attempts via SFTP
           echo "test content" > /tmp/test_file.txt
@@ -412,7 +416,7 @@ jobs:
 
       - name: "[Security] Test root login rejection (PermitRootLogin no)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -425,7 +429,7 @@ jobs:
 
       - name: "[Security] Test unauthorized user rejection (AllowUsers backtail)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture ssh -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -447,7 +451,7 @@ jobs:
 
       - name: "[Security] Test force command landing directory (ForceCommand internal-sftp -d /backtail)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           capture sftp -i "${SFTP_TEST_KEY_PATH}" \
             -o StrictHostKeyChecking=no \
@@ -462,7 +466,7 @@ jobs:
 
       - name: "[Security] Test banner display (Banner /config/banner.txt)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
 
           BANNER_DISPLAY="banner test"
           ls -la "${SFTP_TEST_CONFIG_DIR}/${BANNER_FILE}"
@@ -481,7 +485,7 @@ jobs:
 
       - name: "[Security] Test unsupported key type rejection (ECDSA) (PubkeyAcceptedAlgorithms ssh-ed25519)"
         run: |
-          . ./test_helper.sh
+          setup_sftp_test
           teardown_sftp_test
           setup_sftp_test "ecdsa"
 

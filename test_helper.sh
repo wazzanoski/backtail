@@ -157,5 +157,3 @@ teardown_sftp_test() {
 
 trap teardown_sftp_test EXIT
 
-# Auto-call setup when script is sourced (can be overridden by calling setup_sftp_test again with custom parameters)
-setup_sftp_test
