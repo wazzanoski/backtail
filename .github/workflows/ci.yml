@@ -214,9 +214,9 @@ jobs:
             -o Port="${SFTP_TEST_PORT}" \
             -A \
             backtail@127.0.0.1 \
-            'echo SSH_AUTH_SOCK=${SSH_AUTH_SOCK}; [ -z "${SSH_AUTH_SOCK}" ]'
+            'echo SSH_AUTH_SOCK=${SSH_AUTH_SOCK}; [ -n "${SSH_AUTH_SOCK}" ]'
 
-          assert_success
+          assert_failure
 
       - name: "[Security] Test stream local forwarding rejection (AllowStreamLocalForwarding no)"
         run: |
