@@ -11,7 +11,7 @@ if [ ! -f "${CONFIG_FILE}" ]; then
   exit 1
 fi
 
-source "${CONFIG_FILE}"
+. "${CONFIG_FILE}"
 
 # Validate required configuration variables are set
 if [ -z "${BANNER_FILE}" ] || [ -z "${HOST_KEY_FILE}" ] || [ -z "${SSHD_CONFIG_FILE}" ]; then
